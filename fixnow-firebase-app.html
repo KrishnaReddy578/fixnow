@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>FixNow — Local Repairs, Fast</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- Firebase SDKs -->
+<script type="module">
+import { initializeApp }           from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+import { getAuth, RecaptchaVerifier, signInWithPhoneNumber, onAuthStateChanged, signOut }
+                                   from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
+import { getFirestore, collection, doc, addDoc, updateDoc, getDoc, onSnapshot, query, where, orderBy, serverTimestamp }
+                                   from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+import { getDatabase, ref, push, onValue, off, set, update, serverTimestamp as rtdbTimestamp }
+                                   from "https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js";
+
+// ── YOUR FIREBASE CONFIG ──────────────────────────────────────
+const firebaseConfig = {
+  apiKey:            "AIzaSyD9NcW3ichExrKvjUd_xvRxOsDwIh9Jndg",
+  authDomain:        "fixnow-app-test.firebaseapp.com",
+  databaseURL:       "https://fixnow-app-test-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:         "fixnow-app-test",
+  storageBucket:     "fixnow-app-test.firebasestorage.app",
+  messagingSenderId: "425145556302",
+  appId:             "1:425145556302:web:1d2ef9900f90271c95121f"
+};
+
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+const rtdb = getDatabase(app);
+
+// ── STATE ─────────────────────────────────────────────────────
+let currentUser    = null;
+let currentProfile = null;
+let confirmResult  = null;
+let unsubscribers  = [];
+
+// ── CATEGORIES ────────────────────────────────────────────────
+const CATEGORIES = [
+  { id:"electrical",   label:"Electrical",      icon:"⚡", subs:["Wiring & Switches","MCB / Fuse Issues","Fan Installation","Light Fitting","Inverter / UPS"] },
+  { id:"plumbing",     label:"Plumbing",         icon:"🔧", subs:["Tap & Faucet Repair","Pipe Leakage","Drain Cleaning","Toilet Repair","Water Heater"] },
+  { id:"ac",           label:"AC & Appliances",  icon:"❄️", subs:["AC Repair","AC Service","Refrigerator","Washing Machine","TV / Electronics"] },
+  { id:"carpentry",    label:"Carpentry",         icon:"🪵", subs:["Door & Window","Furniture Repair","Bed & Wardrobe","Custom Woodwork"] },
+  { id:"auto",         label:"Auto Repair",       icon:"🚗", subs:["Battery Issues","Tyre Puncture","General Repair","Fuel System"] },
+  { id:"cleaning",     label:"Cleaning",          icon:"🧹", subs:["Home Deep Clean","Sofa Cleaning","Window Cleaning","Bathroom Cleaning"] },
+  { id:"civil",        label:"Civil Work",        icon:"🏗️", subs:["Tiling","Painting","Waterproofing","Fabrication"] },
+  { id:"hardware",     label:"Hardware & Eng.",   icon:"🔩", subs:["Lock & Key","CCTV / Security","Sensor & Automation","Mechanical Work"] },
+];
+
+// ── DISTANCE HELPER ───────────────────────────────────────────
+function getDistanceKm(lat1,lng1,lat2,lng2){
+  const R=6371, dLat=(lat2-lat1)*Math.PI/180, dLng=(lng2-lng1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+// ── ROUTER ────────────────────────────────────────────────────
+function show(screenId) {
+  document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
+  const el = document.getElementById(screenId);
+  if (el) { el.style.display = 'flex'; el.style.flexDirection = 'column'; }
+}
+
+// ── AUTH STATE ────────────────────────────────────────────────
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    currentUser = user;
+    const snap = await getDoc(doc(db, "users", user.uid));
+    if (snap.exists()) {
+      currentProfile = snap.data();
+      if (currentProfile.role === 'customer')    renderCustomerHome();
+      else if (currentProfile.role === 'technician') renderTechHome();
+    } else {
+      show('screen-role');
+    }
+  } else {
+    currentUser = null; currentProfile = null;
+    show('screen-splash');
+  }
+});
+
+// ════════════════════════════════════════════════════════════
+// SCREEN: SPLASH
+// ════════════════════════════════════════════════════════════
+window.goToLogin = function(role) {
+  window._pendingRole = role;
+  show('screen-login');
+  document.getElementById('login-subtitle').textContent =
+    role === 'customer' ? 'Login to post repair jobs' : 'Login to find jobs & earn';
+}
+
+// ════════════════════════════════════════════════════════════
+// SCREEN: LOGIN (OTP)
+// ════════════════════════════════════════════════════════════
+window.sendOTP = async function() {
+  const phone = document.getElementById('phone-input').value.trim();
+  const btn   = document.getElementById('otp-send-btn');
+  const err   = document.getElementById('login-error');
+  err.textContent = '';
+  if (phone.length !== 10 || isNaN(phone)) { err.textContent = 'Enter a valid 10-digit number'; return; }
+  btn.textContent = 'Sending...'; btn.disabled = true;
+  try {
+    if (!window.recaptchaVerifier) {
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', { size: 'invisible' });
+    }
+    confirmResult = await signInWithPhoneNumber(auth, `+91${phone}`, window.recaptchaVerifier);
+    document.getElementById('login-step1').style.display = 'none';
+    document.getElementById('login-step2').style.display = 'block';
+    document.getElementById('phone-display').textContent = `+91 ${phone}`;
+  } catch(e) {
+    err.textContent = 'Failed to send OTP. Try again.';
+    console.error(e);
+  }
+  btn.textContent = 'Send OTP →'; btn.disabled = false;
+}
+
+window.verifyOTP = async function() {
+  const otp = document.getElementById('otp-input').value.trim();
+  const btn  = document.getElementById('otp-verify-btn');
+  const err  = document.getElementById('login-error');
+  err.textContent = '';
+  if (otp.length !== 6) { err.textContent = 'Enter the 6-digit OTP'; return; }
+  btn.textContent = 'Verifying...'; btn.disabled = true;
+  try {
+    await confirmResult.confirm(otp);
+    // onAuthStateChanged will handle next step
+  } catch(e) {
+    err.textContent = 'Invalid OTP. Try again.';
+    btn.textContent = 'Verify →'; btn.disabled = false;
+  }
+}
+
+window.resendOTP = function() {
+  document.getElementById('login-step1').style.display = 'block';
+  document.getElementById('login-step2').style.display = 'none';
+  window.recaptchaVerifier = null;
+}
+
+// ════════════════════════════════════════════════════════════
+// SCREEN: ROLE SELECT
+// ════════════════════════════════════════════════════════════
+window.selectRole = function(role) {
+  window._pendingRole = role;
+  show('screen-profile');
+  document.getElementById('profile-role-label').textContent =
+    role === 'customer' ? '🏠 Setting up Customer Profile' : '🔧 Setting up Technician Profile';
+  const skillsSection = document.getElementById('skills-section');
+  skillsSection.style.display = role === 'technician' ? 'block' : 'none';
+}
+
+window.saveProfile = async function() {
+  const name = document.getElementById('profile-name').value.trim();
+  const btn  = document.getElementById('profile-save-btn');
+  if (!name) { alert('Please enter your name'); return; }
+  btn.textContent = 'Saving...'; btn.disabled = true;
+  const role = window._pendingRole || 'customer';
+  const selectedSkills = Array.from(document.querySelectorAll('.skill-chip.selected')).map(c => c.dataset.id);
+  const profileData = {
+    uid: currentUser.uid, phone: currentUser.phoneNumber,
+    name, role, createdAt: serverTimestamp(),
+    rating: 0, totalRatings: 0, totalJobs: 0,
+    ...(role === 'technician' && { skills: selectedSkills, isOnline: true, totalEarnings: 0 })
+  };
+  await import("https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js").then(async ({setDoc}) => {
+    await setDoc(doc(db, "users", currentUser.uid), profileData);
+  });
+  currentProfile = profileData;
+  if (role === 'customer') renderCustomerHome();
+  else renderTechHome();
+}
+
+window.toggleSkill = function(el) { el.classList.toggle('selected'); }
+
+// ════════════════════════════════════════════════════════════
+// CUSTOMER HOME
+// ════════════════════════════════════════════════════════════
+function renderCustomerHome() {
+  show('screen-customer-home');
+  document.getElementById('cust-greeting').textContent = `Hey ${currentProfile.name} 👋`;
+
+  // Load active jobs
+  unsubscribers.forEach(u => u()); unsubscribers = [];
+  const q = query(collection(db,"jobs"), where("customerId","==",currentUser.uid), orderBy("createdAt","desc"));
+  const unsub = onSnapshot(q, snap => {
+    const jobs = snap.docs.map(d => ({id:d.id,...d.data()}));
+    const container = document.getElementById('my-jobs-list');
+    if (jobs.length === 0) { container.innerHTML = '<div style="text-align:center;color:#A09890;padding:20px;font-size:13px">No jobs yet. Post your first job above!</div>'; return; }
+    container.innerHTML = jobs.map(j => `
+      <div class="job-card" onclick="openJobBids('${j.id}')">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span class="cat-tag">${CATEGORIES.find(c=>c.id===j.category)?.icon||'🔧'} ${j.category}</span>
+          <span class="status-badge ${j.status}">${j.status==='open'?`${j.bidCount||0} Bids`:j.status==='in_progress'?'In Progress':'Done'}</span>
+        </div>
+        <div style="font-weight:700;color:#0E0C0A;margin-bottom:4px;font-family:'Syne',sans-serif">${j.title}</div>
+        <div style="font-size:12px;color:#A09890">📍 ${j.location?.address||'Your location'} · 🕐 ${j.urgency}</div>
+      </div>`).join('');
+  });
+  unsubscribers.push(unsub);
+}
+
+window.openCategory = function(catId) {
+  const cat = CATEGORIES.find(c => c.id === catId);
+  window._selectedCat = cat;
+  show('screen-subcategory');
+  document.getElementById('subcat-title').textContent = `${cat.icon} ${cat.label}`;
+  document.getElementById('subcat-list').innerHTML = cat.subs.map(s => `
+    <div class="subcat-row" onclick="openPostJob('${s}')">
+      <div class="subcat-icon">${cat.icon}</div>
+      <div><div style="font-weight:700;color:#0E0C0A;font-family:'Syne',sans-serif">${s}</div></div>
+      <div style="margin-left:auto;color:#A09890;font-size:18px">→</div>
+    </div>`).join('') +
+    `<div class="subcat-row" onclick="openPostJob('Other')">
+      <div class="subcat-icon">🔧</div>
+      <div><div style="font-weight:700;color:#0E0C0A">Other / Not sure</div><div style="font-size:12px;color:#A09890;margin-top:2px">Describe your issue</div></div>
+      <div style="margin-left:auto;color:#A09890;font-size:18px">→</div>
+    </div>`;
+}
+
+window.openPostJob = function(sub) {
+  window._selectedSub = sub;
+  const cat = window._selectedCat;
+  show('screen-post-job');
+  document.getElementById('postjob-cat-label').textContent = `${cat.icon} ${cat.label} › ${sub}`;
+  // Get location
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(pos => {
+      window._lat = pos.coords.latitude;
+      window._lng = pos.coords.longitude;
+      document.getElementById('location-display').textContent = `📍 GPS: ${pos.coords.latitude.toFixed(3)}, ${pos.coords.longitude.toFixed(3)}`;
+    }, () => {
+      document.getElementById('location-display').textContent = '📍 Enter address manually below';
+    });
+  }
+}
+
+window.selectUrgency = function(val, el) {
+  document.querySelectorAll('.urgency-opt').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  window._urgency = val;
+}
+window._urgency = 'urgent';
+
+window.postJob = async function() {
+  const title = document.getElementById('job-title').value.trim();
+  const desc  = document.getElementById('job-desc').value.trim();
+  const addr  = document.getElementById('job-address').value.trim();
+  const btn   = document.getElementById('post-job-btn');
+  if (!title) { alert('Please enter what needs fixing'); return; }
+  if (!desc)  { alert('Please describe the problem'); return; }
+  btn.textContent = 'Posting...'; btn.disabled = true;
+  try {
+    const jobRef = await addDoc(collection(db,"jobs"), {
+      customerId:    currentUser.uid,
+      customerName:  currentProfile.name,
+      customerPhone: currentProfile.phone,
+      category:      window._selectedCat?.id || 'general',
+      subcategory:   window._selectedSub || '',
+      title, description: desc,
+      urgency:       window._urgency || 'urgent',
+      status:        'open',
+      imageUrls:     [],
+      location: { address: addr || 'Kamareddy', lat: window._lat||18.32, lng: window._lng||78.34 },
+      bidCount:      0,
+      technicianId:  null,
+      createdAt:     serverTimestamp(),
+      updatedAt:     serverTimestamp(),
+    });
+    document.getElementById('job-title').value = '';
+    document.getElementById('job-desc').value  = '';
+    document.getElementById('job-address').value = '';
+    openWaiting(jobRef.id);
+  } catch(e) {
+    alert('Failed to post job. Please try again.'); console.error(e);
+  }
+  btn.textContent = '🚀 Post Job'; btn.disabled = false;
+}
+
+// ════════════════════════════════════════════════════════════
+// WAITING SCREEN
+// ════════════════════════════════════════════════════════════
+function openWaiting(jobId) {
+  window._currentJobId = jobId;
+  show('screen-waiting');
+  document.getElementById('waiting-bid-count').textContent = '0';
+  document.getElementById('waiting-preview').style.display = 'none';
+
+  const unsub = onSnapshot(doc(db,"jobs",jobId), snap => {
+    const data = snap.data();
+    if (data) document.getElementById('waiting-bid-count').textContent = data.bidCount || 0;
+  });
+  unsubscribers.push(unsub);
+
+  const bidQ = query(collection(db,"bids"), where("jobId","==",jobId));
+  const unsub2 = onSnapshot(bidQ, snap => {
+    if (snap.docs.length > 0) {
+      const bid = snap.docs[0].data();
+      const preview = document.getElementById('waiting-preview');
+      preview.style.display = 'block';
+      preview.innerHTML = `
+        <div style="font-size:11px;font-weight:700;color:#F4500A;margin-bottom:8px;letter-spacing:0.5px">⚡ NEW BID RECEIVED!</div>
+        <div style="font-weight:700;color:#0E0C0A;font-family:'Syne',sans-serif">${bid.technicianName}</div>
+        <div style="font-size:13px;color:#A09890;margin-top:3px">₹${bid.price} · ${bid.estimatedTime}</div>
+        <button onclick="openJobBids('${jobId}')" style="margin-top:10px;background:linear-gradient(135deg,#F4500A,#C93D05);color:white;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;width:100%">View Bids →</button>`;
+    }
+  });
+  unsubscribers.push(unsub2);
+}
+
+window.openJobBids = function(jobId) {
+  window._currentJobId = jobId;
+  show('screen-bids');
+  document.getElementById('bids-list').innerHTML = '<div style="text-align:center;padding:30px;color:#A09890">Loading bids...</div>';
+
+  const q = query(collection(db,"bids"), where("jobId","==",jobId));
+  const unsub = onSnapshot(q, snap => {
+    const bids = snap.docs.map(d => ({id:d.id,...d.data()}));
+    const container = document.getElementById('bids-list');
+    if (bids.length === 0) {
+      container.innerHTML = '<div style="text-align:center;padding:40px 20px;color:#A09890"><div style="font-size:32px;margin-bottom:10px">⏳</div>Waiting for technicians to respond...<br><small>Stay on this screen — bids appear in real time!</small></div>';
+      return;
+    }
+    container.innerHTML = bids.map(b => `
+      <div class="bid-card">
+        <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:10px">
+          <div class="tech-avatar">🔧</div>
+          <div style="flex:1">
+            <div style="font-weight:700;color:#0E0C0A;font-family:'Syne',sans-serif;font-size:16px">${b.technicianName}</div>
+            <div style="font-size:12px;color:#A09890;margin-top:2px">⭐ ${b.technicianRating||'New'} · Verified</div>
+          </div>
+          <div style="background:#FFF0EA;border:1px solid rgba(244,80,10,0.2);border-radius:10px;padding:8px 12px;text-align:center">
+            <div style="font-size:22px;font-weight:800;color:#F4500A;font-family:'Syne',sans-serif">₹${b.price}</div>
+            <div style="font-size:10px;color:#A09890;margin-top:1px">Estimated</div>
+          </div>
+        </div>
+        ${b.message?`<div style="background:#F7F4F0;border-radius:10px;padding:10px 12px;font-size:13px;color:#6B6560;line-height:1.5;margin-bottom:10px">"${b.message}"</div>`:''}
+        ${b.sparesRequired?`<div style="margin-bottom:8px"><span style="background:#EBF1FB;color:#1A56A0;font-size:11px;font-weight:600;padding:3px 9px;border-radius:6px">🧰 ${b.sparesRequired}</span></div>`:''}
+        <div style="font-size:12px;color:#A09890;margin-bottom:10px">⏱️ ${b.estimatedTime}</div>
+        <div style="display:flex;gap:8px">
+          <button onclick="acceptBid('${jobId}','${b.id}','${b.technicianId}','${b.technicianName}',${b.price})" style="flex:1;padding:11px;border-radius:10px;background:linear-gradient(135deg,#F4500A,#C93D05);color:white;border:none;font-size:14px;font-weight:700;cursor:pointer">✓ Accept & Chat</button>
+          <button onclick="openChat('${jobId}','${b.technicianId}','${b.technicianName}')" style="padding:11px 16px;border-radius:10px;background:white;color:#6B6560;border:1.5px solid #EAE4DC;font-size:13px;font-weight:600;cursor:pointer">💬 Ask</button>
+        </div>
+      </div>`).join('');
+  });
+  unsubscribers.push(unsub);
+}
+
+// ════════════════════════════════════════════════════════════
+// ACCEPT BID + INIT CHAT
+// ════════════════════════════════════════════════════════════
+window.acceptBid = async function(jobId, bidId, techId, techName, price) {
+  try {
+    await updateDoc(doc(db,"bids",bidId), { status:'accepted' });
+    await updateDoc(doc(db,"jobs",jobId), { status:'in_progress', technicianId:techId, agreedPrice:price, updatedAt:serverTimestamp() });
+    // Init chat room in RTDB
+    await set(ref(rtdb,`chats/${jobId}`), {
+      jobId, customerId:currentUser.uid, customerName:currentProfile.name,
+      technicianId:techId, technicianName:techName,
+      participantIds:{ [currentUser.uid]:true, [techId]:true },
+      createdAt:Date.now(), lastMessage:'', lastMessageAt:Date.now()
+    });
+    await push(ref(rtdb,`chats/${jobId}/messages`), {
+      senderId:'system', senderName:'FixNow', senderRole:'system',
+      text:`✅ ${currentProfile.name} accepted ${techName}'s bid of ₹${price}. Chat is now open!`,
+      type:'system', timestamp:Date.now()
+    });
+    openChat(jobId, techId, techName);
+  } catch(e) { alert('Error accepting bid'); console.error(e); }
+}
+
+// ════════════════════════════════════════════════════════════
+// CHAT SCREEN
+// ════════════════════════════════════════════════════════════
+window.openChat = function(chatId, otherId, otherName) {
+  window._chatId   = chatId;
+  window._otherId  = otherId;
+  window._otherName = otherName;
+  show('screen-chat');
+  document.getElementById('chat-other-name').textContent = otherName;
+  document.getElementById('chat-messages').innerHTML = '';
+
+  // Load job info
+  getDoc(doc(db,"jobs",chatId)).then(snap => {
+    if (snap.exists()) {
+      const j = snap.data();
+      window._currentJob = { id:chatId, ...j };
+      document.getElementById('chat-job-summary').textContent = `${j.category} · ₹${j.agreedPrice||'TBD'} · ${j.status}`;
+      const payBar = document.getElementById('chat-pay-bar');
+      if (j.status === 'completed' && currentProfile.role === 'customer') payBar.style.display = 'flex';
+      else payBar.style.display = 'none';
+    }
+  });
+
+  // Listen to messages
+  const msgRef = ref(rtdb, `chats/${chatId}/messages`);
+  const handler = onValue(msgRef, snap => {
+    const data = snap.val();
+    if (!data) return;
+    const msgs = Object.entries(data).map(([id,m]) => ({id,...m})).sort((a,b)=>a.timestamp-b.timestamp);
+    const container = document.getElementById('chat-messages');
+    container.innerHTML = msgs.map(m => {
+      if (m.senderId === 'system' || m.type === 'system' || m.type === 'job_complete') {
+        return `<div class="system-msg">${m.text}${m.type==='job_complete'&&currentProfile.role==='customer'?`<br><button onclick="openPayment()" style="margin-top:8px;background:linear-gradient(135deg,#F4500A,#C93D05);color:white;border:none;border-radius:8px;padding:8px 20px;font-size:13px;font-weight:700;cursor:pointer">💳 Pay Now →</button>`:''}</div>`;
+      }
+      const isMe = m.senderId === currentUser.uid;
+      return `<div class="msg-row ${isMe?'mine':''}">
+        <div class="msg-ava" style="background:${isMe?'#0E0C0A':'linear-gradient(135deg,#F4500A,#C93D05)'}">${m.senderRole==='customer'?'👤':'🔧'}</div>
+        <div>
+          ${!isMe?`<div style="font-size:10px;color:#A09890;margin-bottom:2px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">${m.senderName}</div>`:''}
+          <div class="msg-bubble ${isMe?'mine':'theirs'}">${m.text}</div>
+          <div style="font-size:10px;color:#A09890;margin-top:2px;${isMe?'text-align:right':''}">${new Date(m.timestamp).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</div>
+        </div>
+      </div>`;
+    }).join('');
+    container.scrollTop = container.scrollHeight;
+  });
+  window._chatListener = () => off(msgRef,'value',handler);
+}
+
+window.sendChatMessage = async function() {
+  const input = document.getElementById('chat-input');
+  const text  = input.value.trim();
+  if (!text || !window._chatId) return;
+  input.value = '';
+  await push(ref(rtdb,`chats/${window._chatId}/messages`), {
+    senderId:   currentUser.uid,
+    senderName: currentProfile.name,
+    senderRole: currentProfile.role,
+    text, type:'text', timestamp:Date.now()
+  });
+  await update(ref(rtdb,`chats/${window._chatId}`), { lastMessage:text, lastMessageAt:Date.now() });
+}
+
+window.markJobComplete = async function() {
+  if (!window._chatId) return;
+  await updateDoc(doc(db,"jobs",window._chatId), { status:'completed', updatedAt:serverTimestamp() });
+  await push(ref(rtdb,`chats/${window._chatId}/messages`), {
+    senderId:'system', senderName:'FixNow', senderRole:'system',
+    text:`✅ ${currentProfile.name} marked the job as complete. Customer please pay and rate.`,
+    type:'job_complete', timestamp:Date.now()
+  });
+  document.getElementById('complete-btn').style.display = 'none';
+}
+
+// ════════════════════════════════════════════════════════════
+// PAYMENT
+// ════════════════════════════════════════════════════════════
+window.openPayment = function() {
+  show('screen-payment');
+  const job = window._currentJob;
+  document.getElementById('payment-amount').textContent = `₹${job?.agreedPrice||'0'}`;
+  document.getElementById('payment-service').textContent = job?.category || '';
+}
+
+window.selectPayMethod = function(el) {
+  document.querySelectorAll('.pay-method').forEach(m => m.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+window.processPayment = async function() {
+  const btn = document.getElementById('pay-btn');
+  btn.textContent = 'Processing...'; btn.disabled = true;
+  try {
+    await updateDoc(doc(db,"jobs",window._chatId), { status:'completed', updatedAt:serverTimestamp() });
+    show('screen-rating');
+  } catch(e) { alert('Error processing payment'); }
+  btn.textContent = 'Pay Now'; btn.disabled = false;
+}
+
+// ════════════════════════════════════════════════════════════
+// RATING
+// ════════════════════════════════════════════════════════════
+window._ratingScore = 5;
+window.rateStar = function(n) {
+  window._ratingScore = n;
+  document.querySelectorAll('.star-btn').forEach((s,i) => {
+    s.style.opacity  = i < n ? '1' : '0.35';
+    s.style.filter   = i < n ? 'none' : 'grayscale(1)';
+  });
+}
+window.toggleRatingTag = function(el) { el.classList.toggle('selected'); }
+
+window.submitRating = async function() {
+  const tags    = Array.from(document.querySelectorAll('.rtag.selected')).map(t => t.textContent);
+  const comment = document.getElementById('rating-comment').value;
+  const btn     = document.getElementById('rating-submit-btn');
+  btn.textContent = 'Submitting...'; btn.disabled = true;
+  try {
+    const { addDoc: add, collection: col } = await import("https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js");
+    await addDoc(collection(db,"ratings"), {
+      jobId:    window._chatId,
+      fromId:   currentUser.uid,
+      fromRole: currentProfile.role,
+      toId:     window._otherId,
+      score:    window._ratingScore,
+      tags, comment, createdAt: serverTimestamp()
+    });
+    show('screen-success');
+  } catch(e) { alert('Failed to submit rating'); }
+  btn.textContent = 'Submit Rating'; btn.disabled = false;
+}
+
+// ════════════════════════════════════════════════════════════
+// TECHNICIAN HOME
+// ════════════════════════════════════════════════════════════
+function renderTechHome() {
+  show('screen-tech-home');
+  document.getElementById('tech-greeting').textContent = `Welcome, ${currentProfile.name} 🔧`;
+  document.getElementById('tech-earnings').textContent = `₹${currentProfile.totalEarnings||0}`;
+  document.getElementById('tech-jobs').textContent     = currentProfile.totalJobs||0;
+  document.getElementById('tech-rating').textContent   = `${currentProfile.rating||'—'} ⭐`;
+
+  // Load nearby jobs
+  const q = query(collection(db,"jobs"), where("status","==","open"), orderBy("createdAt","desc"));
+  const unsub = onSnapshot(q, snap => {
+    const jobs = snap.docs.map(d => ({id:d.id,...d.data()}))
+      .map(j => { if(j.location?.lat) j._dist = getDistanceKm(currentProfile.lat||18.32, currentProfile.lng||78.34, j.location.lat, j.location.lng); return j; })
+      .filter(j => (j._dist||0) <= 10)
+      .sort((a,b) => (a._dist||0)-(b._dist||0));
+
+    const container = document.getElementById('tech-jobs-list');
+    if (jobs.length === 0) {
+      container.innerHTML = '<div style="text-align:center;padding:50px 20px;color:#A09890"><div style="font-size:36px;margin-bottom:12px">🔍</div><div style="font-weight:700;margin-bottom:6px">No jobs nearby right now</div><div style="font-size:13px">Stay online — jobs appear in real time</div></div>';
+      return;
+    }
+    container.innerHTML = jobs.map(j => {
+      const cat  = CATEGORIES.find(c=>c.id===j.category);
+      const urgC = j.urgency==='urgent'?'#C92B2B':j.urgency==='today'?'#F4500A':'#2E7D4F';
+      const urgB = j.urgency==='urgent'?'#FDEAEA':j.urgency==='today'?'#FFF0EA':'#E8F5EE';
+      return `
+      <div class="tech-job-card" id="tjob-${j.id}">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="background:${urgB};color:${urgC};font-size:11px;font-weight:700;padding:3px 10px;border-radius:6px">${cat?.icon||'🔧'} ${cat?.label||j.category}</span>
+          <span style="font-size:12px;color:#A09890;font-weight:600">📍 ${j._dist?j._dist.toFixed(1)+'km':'Nearby'} · ${j.urgency}</span>
+        </div>
+        <div style="font-weight:700;color:#0E0C0A;font-family:'Syne',sans-serif;margin-bottom:5px">${j.title}</div>
+        <div style="font-size:13px;color:#6B6560;line-height:1.5;margin-bottom:10px">${j.description}</div>
+        <div style="font-size:12px;color:#A09890;margin-bottom:12px">📍 ${j.location?.address||''} · 💬 ${j.bidCount||0} bids · 🕐 ${j.urgency}</div>
+        <div id="bid-form-${j.id}" style="background:#FFF0EA;border:1.5px solid rgba(244,80,10,0.2);border-radius:12px;padding:14px">
+          <div style="font-size:11px;font-weight:700;color:#F4500A;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:10px">📤 Send Your Quote</div>
+          <div style="display:flex;gap:8px;margin-bottom:8px">
+            <input id="bid-price-${j.id}" type="number" placeholder="₹ Your price" style="flex:1;border:1.5px solid #EAE4DC;border-radius:9px;padding:9px 12px;font-size:13px;font-family:'Manrope',sans-serif;outline:none;background:white">
+            <input id="bid-time-${j.id}" placeholder="Time (e.g. 45 min)" style="flex:1;border:1.5px solid #EAE4DC;border-radius:9px;padding:9px 12px;font-size:13px;font-family:'Manrope',sans-serif;outline:none;background:white">
+          </div>
+          <input id="bid-spares-${j.id}" placeholder="Spares needed (optional)" style="width:100%;border:1.5px solid #EAE4DC;border-radius:9px;padding:9px 12px;font-size:13px;font-family:'Manrope',sans-serif;outline:none;background:white;margin-bottom:8px;box-sizing:border-box">
+          <textarea id="bid-msg-${j.id}" placeholder="Note to customer (optional)..." style="width:100%;border:1.5px solid #EAE4DC;border-radius:9px;padding:9px 12px;font-size:13px;font-family:'Manrope',sans-serif;outline:none;background:white;min-height:60px;resize:vertical;margin-bottom:10px;box-sizing:border-box"></textarea>
+          <button onclick="submitBid('${j.id}')" style="width:100%;background:linear-gradient(135deg,#F4500A,#C93D05);color:white;border:none;border-radius:10px;padding:11px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif">Send Bid →</button>
+        </div>
+      </div>`;
+    }).join('');
+  });
+  unsubscribers.push(unsub);
+}
+
+window.submitBid = async function(jobId) {
+  const price  = document.getElementById(`bid-price-${jobId}`).value;
+  const time   = document.getElementById(`bid-time-${jobId}`).value;
+  const spares = document.getElementById(`bid-spares-${jobId}`).value;
+  const msg    = document.getElementById(`bid-msg-${jobId}`).value;
+  if (!price) { alert('Please enter your price estimate'); return; }
+
+  const jobSnap = await getDoc(doc(db,"jobs",jobId));
+  const bidCount = jobSnap.data()?.bidCount || 0;
+
+  await addDoc(collection(db,"bids"), {
+    jobId, technicianId:currentUser.uid, technicianName:currentProfile.name,
+    technicianPhone:currentProfile.phone||'', technicianRating:currentProfile.rating||0,
+    price:Number(price), estimatedTime:time||'TBD',
+    sparesRequired:spares, message:msg, status:'pending', createdAt:serverTimestamp()
+  });
+  await updateDoc(doc(db,"jobs",jobId), { bidCount: bidCount+1, updatedAt:serverTimestamp() });
+
+  document.getElementById(`bid-form-${jobId}`).innerHTML = `
+    <div style="text-align:center;padding:12px">
+      <div style="font-size:24px;margin-bottom:6px">✅</div>
+      <div style="font-weight:700;color:#2E7D4F;font-family:'Syne',sans-serif">Bid Sent!</div>
+      <div style="font-size:12px;color:#A09890;margin-top:4px">₹${price} · ${time||'TBD'} — Waiting for customer</div>
+      <button onclick="openChat('${jobId}','${jobId}','Customer')" style="margin-top:10px;background:#2E7D4F;color:white;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer">Open Chat →</button>
+    </div>`;
+  document.getElementById(`bid-form-${jobId}`).style.background = '#E8F5EE';
+  document.getElementById(`bid-form-${jobId}`).style.borderColor = 'rgba(46,125,79,0.25)';
+}
+
+// ── LOGOUT ────────────────────────────────────────────────────
+window.logout = async function() {
+  unsubscribers.forEach(u => u()); unsubscribers = [];
+  if (window._chatListener) window._chatListener();
+  await signOut(auth);
+}
+
+window.goHome = function() {
+  if (currentProfile?.role === 'customer') renderCustomerHome();
+  else renderTechHome();
+}
+
+window.goBack = function() { history.back(); }
+</script>
+
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--or:#F4500A;--or2:#C93D05;--dark:#0E0C0A;--light:#F7F4F0;--white:#fff;--border:#EAE4DC;--muted:#A09890;--mid:#6B6560;--green:#2E7D4F;--grad:linear-gradient(135deg,#F4500A,#C93D05)}
+html,body{height:100%;width:100%;overflow:hidden;font-family:'Manrope',sans-serif;background:#1a1614}
+.screen{display:none;height:100vh;width:100%;max-width:430px;margin:0 auto;background:var(--light);overflow:hidden;position:relative}
+.scroll-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.scroll-body::-webkit-scrollbar{display:none}
+
+/* TOP BAR */
+.top-bar{background:white;padding:14px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);flex-shrink:0}
+.back-btn{width:36px;height:36px;border-radius:10px;background:var(--light);border:none;font-size:18px;cursor:pointer;flex-shrink:0}
+.top-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:var(--dark);flex:1}
+
+/* BUTTONS */
+.btn-primary{width:100%;padding:15px;border-radius:14px;background:var(--grad);color:white;border:none;font-size:16px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif}
+.btn-ghost{width:100%;padding:13px;border-radius:14px;background:white;color:var(--mid);border:1.5px solid var(--border);font-size:14px;font-weight:600;cursor:pointer;font-family:'Manrope',sans-serif}
+
+/* FORMS */
+.form-input{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;font-size:14px;color:var(--dark);font-family:'Manrope',sans-serif;outline:none;background:var(--light);margin-bottom:12px}
+.form-input:focus{border-color:var(--or)}
+.form-label{font-size:13px;font-weight:600;color:var(--mid);display:block;margin-bottom:6px}
+.form-section{background:white;border-radius:16px;padding:18px;margin-bottom:12px;border:1.5px solid var(--border)}
+.form-section-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--dark);margin-bottom:14px}
+
+/* CARDS */
+.job-card{background:white;margin:6px 16px;border-radius:16px;padding:16px;border:1.5px solid var(--border);cursor:pointer;box-shadow:0 2px 12px rgba(14,12,10,0.06)}
+.bid-card{background:white;margin:8px 16px;border-radius:16px;padding:16px;border:1.5px solid var(--border);box-shadow:0 2px 12px rgba(14,12,10,0.06)}
+.tech-job-card{background:white;margin:8px 16px;border-radius:16px;padding:16px;border:1.5px solid var(--border);box-shadow:0 2px 12px rgba(14,12,10,0.06)}
+
+/* TAGS */
+.cat-tag{background:#FFF0EA;color:var(--or);font-size:11px;font-weight:700;padding:3px 10px;border-radius:6px}
+.status-badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:6px}
+.status-badge.open{background:#E8F5EE;color:#2E7D4F}
+.status-badge.in_progress{background:#EBF1FB;color:#1A56A0}
+.status-badge.completed{background:var(--light);color:var(--muted)}
+
+/* CHAT */
+.msg-row{display:flex;gap:8px;align-items:flex-end;max-width:85%}
+.msg-row.mine{flex-direction:row-reverse;align-self:flex-end}
+.msg-ava{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.msg-bubble{padding:10px 14px;border-radius:16px;font-size:14px;line-height:1.5;word-break:break-word}
+.msg-bubble.theirs{background:white;border:1px solid var(--border);border-bottom-left-radius:4px;color:var(--dark)}
+.msg-bubble.mine{background:var(--grad);color:white;border-bottom-right-radius:4px}
+.system-msg{align-self:center;background:#FFF0EA;border:1px solid rgba(244,80,10,0.2);border-radius:12px;padding:10px 16px;text-align:center;max-width:85%;font-size:13px;color:var(--dark);margin:4px auto}
+
+/* MISC */
+.tech-avatar{width:44px;height:44px;border-radius:12px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.subcat-row{background:white;border-radius:14px;padding:16px;margin-bottom:10px;border:1.5px solid var(--border);display:flex;align-items:center;gap:14px;cursor:pointer}
+.subcat-icon{width:44px;height:44px;border-radius:12px;background:#FFF0EA;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.urgency-opt{flex:1;padding:12px 8px;border:1.5px solid var(--border);border-radius:12px;text-align:center;cursor:pointer}
+.urgency-opt.selected{border-color:var(--or);background:#FFF0EA}
+.skill-chip{padding:6px 14px;border-radius:20px;border:1.5px solid var(--border);background:white;cursor:pointer;font-size:13px;font-weight:600;color:var(--mid);display:inline-block;margin:4px}
+.skill-chip.selected{border-color:var(--or);background:#FFF0EA;color:var(--or)}
+.pay-method{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1.5px solid var(--border);border-radius:12px;margin-bottom:8px;cursor:pointer}
+.pay-method.selected{border-color:var(--or);background:#FFF0EA}
+.star-btn{font-size:36px;cursor:pointer;transition:all 0.15s}
+.rtag{padding:7px 14px;border-radius:20px;border:1.5px solid var(--border);font-size:13px;font-weight:500;color:var(--mid);cursor:pointer;display:inline-block;margin:4px}
+.rtag.selected{border-color:var(--or);background:#FFF0EA;color:var(--or)}
+
+/* BOTTOM NAV */
+.bottom-nav{height:72px;background:white;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-around;padding-bottom:6px;flex-shrink:0}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:6px 16px}
+.nav-icon{font-size:22px}
+.nav-lbl{font-size:10px;font-weight:600;color:var(--muted)}
+.nav-item.active .nav-lbl{color:var(--or)}
+</style>
+</head>
+<body>
+
+<!-- RECAPTCHA (invisible) -->
+<div id="recaptcha-container"></div>
+
+<!-- ══ SPLASH ══════════════════════════════════════════════ -->
+<div class="screen active" id="screen-splash" style="background:#0E0C0A;align-items:center;justify-content:center;text-align:center;padding:32px">
+  <div style="position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 35%,rgba(244,80,10,0.25) 0%,transparent 65%);pointer-events:none"></div>
+  <div style="width:80px;height:80px;border-radius:22px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:40px;color:white;margin:0 auto 20px;box-shadow:0 16px 48px rgba(244,80,10,0.4);position:relative">F</div>
+  <div style="font-family:'Syne',sans-serif;font-size:44px;font-weight:800;color:white;letter-spacing:-1.5px;position:relative">Fix<span style="color:var(--or)">Now</span></div>
+  <div style="font-size:15px;color:#806860;margin:8px 0 48px;position:relative">Instant local repairs, on demand</div>
+  <div style="display:flex;flex-direction:column;gap:14px;width:100%;position:relative">
+    <div onclick="goToLogin('customer')" style="background:rgba(255,255,255,0.07);border:1.5px solid rgba(255,255,255,0.12);border-radius:20px;padding:22px 24px;display:flex;align-items:center;gap:16px;cursor:pointer;text-align:left">
+      <div style="width:54px;height:54px;border-radius:15px;background:rgba(244,80,10,0.2);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0">🏠</div>
+      <div><div style="font-family:'Syne',sans-serif;font-size:19px;font-weight:700;color:white">I need a repair</div><div style="font-size:13px;color:#806860;margin-top:3px">Post a job, get quotes fast</div></div>
+      <div style="margin-left:auto;color:var(--or);font-size:20px">→</div>
+    </div>
+    <div onclick="goToLogin('technician')" style="background:rgba(255,255,255,0.07);border:1.5px solid rgba(255,255,255,0.12);border-radius:20px;padding:22px 24px;display:flex;align-items:center;gap:16px;cursor:pointer;text-align:left">
+      <div style="width:54px;height:54px;border-radius:15px;background:rgba(46,125,79,0.2);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0">🔧</div>
+      <div><div style="font-family:'Syne',sans-serif;font-size:19px;font-weight:700;color:white">I'm a Technician</div><div style="font-size:13px;color:#806860;margin-top:3px">Find jobs near you, earn daily</div></div>
+      <div style="margin-left:auto;color:var(--or);font-size:20px">→</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ LOGIN ════════════════════════════════════════════════ -->
+<div class="screen" id="screen-login" style="background:#0E0C0A;align-items:center;justify-content:center;padding:32px">
+  <div style="width:60px;height:60px;border-radius:16px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:28px;color:white;margin-bottom:16px">F</div>
+  <div style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:white;margin-bottom:6px">Login to FixNow</div>
+  <div id="login-subtitle" style="font-size:14px;color:#806860;margin-bottom:28px;text-align:center">Enter your mobile number</div>
+  <div style="background:white;border-radius:20px;padding:24px;width:100%">
+    <div id="login-step1">
+      <label class="form-label">Mobile Number</label>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <div style="background:var(--light);border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;font-size:15px;font-weight:600;white-space:nowrap">🇮🇳 +91</div>
+        <input id="phone-input" type="tel" maxlength="10" placeholder="9876543210" style="flex:1;border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;font-size:18px;font-family:'Manrope',sans-serif;outline:none;background:var(--light)">
+      </div>
+      <div id="login-error" style="color:#C92B2B;font-size:13px;text-align:center;margin-bottom:8px"></div>
+      <button id="otp-send-btn" class="btn-primary" onclick="sendOTP()">Send OTP →</button>
+    </div>
+    <div id="login-step2" style="display:none">
+      <div style="font-size:14px;color:var(--mid);margin-bottom:14px;text-align:center">OTP sent to <span id="phone-display" style="font-weight:700;color:var(--dark)"></span></div>
+      <input id="otp-input" type="tel" maxlength="6" placeholder="••••••" style="width:100%;border:1.5px solid var(--border);border-radius:10px;padding:14px;font-size:28px;text-align:center;letter-spacing:10px;font-family:'Manrope',sans-serif;outline:none;background:var(--light);margin-bottom:12px">
+      <div id="login-error" style="color:#C92B2B;font-size:13px;text-align:center;margin-bottom:8px"></div>
+      <button id="otp-verify-btn" class="btn-primary" onclick="verifyOTP()">Verify →</button>
+      <div style="text-align:center;margin-top:12px;font-size:13px;color:var(--muted)">Didn't get it? <span onclick="resendOTP()" style="color:var(--or);font-weight:700;cursor:pointer">Resend OTP</span></div>
+    </div>
+  </div>
+  <button onclick="show('screen-splash')" style="margin-top:16px;background:none;border:none;color:#605850;font-size:14px;cursor:pointer">← Back</button>
+</div>
+
+<!-- ══ ROLE SELECT ══════════════════════════════════════════ -->
+<div class="screen" id="screen-role" style="background:var(--light);align-items:center;justify-content:center;padding:32px">
+  <div style="font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:var(--dark);margin-bottom:8px;text-align:center">I am a...</div>
+  <div style="font-size:14px;color:var(--muted);margin-bottom:28px">Select how you want to use FixNow</div>
+  <div style="display:flex;flex-direction:column;gap:14px;width:100%">
+    <div onclick="selectRole('customer')" style="background:white;border:1.5px solid var(--border);border-radius:20px;padding:22px 24px;display:flex;align-items:center;gap:16px;cursor:pointer">
+      <div style="width:54px;height:54px;border-radius:15px;background:#FFF0EA;display:flex;align-items:center;justify-content:center;font-size:26px">🏠</div>
+      <div><div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:var(--dark)">Customer</div><div style="font-size:13px;color:var(--muted);margin-top:3px">I need repairs done</div></div>
+      <div style="margin-left:auto;color:var(--or);font-size:20px">→</div>
+    </div>
+    <div onclick="selectRole('technician')" style="background:white;border:1.5px solid var(--border);border-radius:20px;padding:22px 24px;display:flex;align-items:center;gap:16px;cursor:pointer">
+      <div style="width:54px;height:54px;border-radius:15px;background:#E8F5EE;display:flex;align-items:center;justify-content:center;font-size:26px">🔧</div>
+      <div><div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:var(--dark)">Technician</div><div style="font-size:13px;color:var(--muted);margin-top:3px">I fix things & earn money</div></div>
+      <div style="margin-left:auto;color:var(--or);font-size:20px">→</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PROFILE SETUP ════════════════════════════════════════ -->
+<div class="screen" id="screen-profile" style="background:var(--light);padding:32px;justify-content:center">
+  <div id="profile-role-label" style="font-size:14px;font-weight:700;color:var(--or);margin-bottom:16px;text-align:center"></div>
+  <div style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--dark);margin-bottom:6px;text-align:center">Complete your profile</div>
+  <div style="font-size:14px;color:var(--muted);margin-bottom:24px;text-align:center">Takes just 30 seconds</div>
+  <div style="background:white;border-radius:16px;padding:24px;border:1.5px solid var(--border)">
+    <label class="form-label">Your full name *</label>
+    <input id="profile-name" class="form-input" placeholder="e.g. Ramesh Kumar">
+    <div id="skills-section" style="display:none">
+      <label class="form-label">Your skills (tap to select)</label>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:16px">
+        ${CATEGORIES.map(c=>`<div class="skill-chip" data-id="${c.id}" onclick="toggleSkill(this)">${c.icon} ${c.label}</div>`).join('')}
+      </div>
+    </div>
+    <button id="profile-save-btn" class="btn-primary" onclick="saveProfile()">Get Started →</button>
+  </div>
+</div>
+
+<!-- ══ CUSTOMER HOME ════════════════════════════════════════ -->
+<div class="screen" id="screen-customer-home">
+  <div style="background:var(--dark);padding:20px 20px 20px;flex-shrink:0;position:relative;overflow:hidden">
+    <div style="position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 80% 50%,rgba(244,80,10,0.15) 0%,transparent 60%);pointer-events:none"></div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;position:relative">
+      <div>
+        <div style="font-size:13px;color:#807870">Good day,</div>
+        <div id="cust-greeting" style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:white"></div>
+      </div>
+      <button onclick="logout()" style="background:rgba(255,255,255,0.1);border:none;color:#A09890;border-radius:10px;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer">Logout</button>
+    </div>
+    <div style="margin-top:14px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:8px;position:relative">
+      <span>🔍</span><span style="font-size:14px;color:#605850">Search for a service...</span>
+    </div>
+  </div>
+  <div class="scroll-body">
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:18px 20px 8px">
+      ${CATEGORIES.map(c=>`
+        <div onclick="openCategory('${c.id}')" style="display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer">
+          <div style="width:60px;height:60px;border-radius:16px;background:white;display:flex;align-items:center;justify-content:center;font-size:26px;border:1.5px solid var(--border);box-shadow:0 2px 12px rgba(14,12,10,0.06)">${c.icon}</div>
+          <div style="font-size:11px;font-weight:600;color:var(--mid);text-align:center;line-height:1.3">${c.label}</div>
+        </div>`).join('')}
+    </div>
+    <div style="padding:4px 20px 10px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--dark)">Your Jobs</span>
+    </div>
+    <div id="my-jobs-list"></div>
+    <div style="height:80px"></div>
+  </div>
+  <div class="bottom-nav">
+    <div class="nav-item active"><div class="nav-icon">🏠</div><div class="nav-lbl">Home</div></div>
+    <div class="nav-item" onclick="show('screen-bids')"><div class="nav-icon">🔔</div><div class="nav-lbl">Bids</div></div>
+    <div class="nav-item" onclick="show('screen-chat')"><div class="nav-icon">💬</div><div class="nav-lbl">Chats</div></div>
+    <div class="nav-item"><div class="nav-icon">👤</div><div class="nav-lbl">Profile</div></div>
+  </div>
+</div>
+
+<!-- ══ SUBCATEGORY ══════════════════════════════════════════ -->
+<div class="screen" id="screen-subcategory">
+  <div class="top-bar">
+    <button class="back-btn" onclick="renderCustomerHome()">←</button>
+    <span id="subcat-title" class="top-title"></span>
+  </div>
+  <div class="scroll-body" style="padding:16px">
+    <div id="subcat-list"></div>
+  </div>
+</div>
+
+<!-- ══ POST JOB ═════════════════════════════════════════════ -->
+<div class="screen" id="screen-post-job">
+  <div class="top-bar">
+    <button class="back-btn" onclick="show('screen-subcategory')">←</button>
+    <span class="top-title">Post a Job</span>
+  </div>
+  <div id="postjob-cat-label" style="background:#FFF0EA;border-bottom:1px solid rgba(244,80,10,0.15);padding:10px 16px;font-size:13px;font-weight:700;color:var(--or);flex-shrink:0"></div>
+  <div class="scroll-body" style="padding:12px 16px 0">
+    <div class="form-section">
+      <div class="form-section-title">📋 Job Details</div>
+      <label class="form-label">What's the issue? *</label>
+      <input id="job-title" class="form-input" placeholder="e.g. AC stopped cooling suddenly">
+      <label class="form-label">Describe the problem *</label>
+      <textarea id="job-desc" class="form-input" style="min-height:90px;resize:vertical" placeholder="When did it start? Any details that help the technician give an accurate quote..."></textarea>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">⚡ How urgent?</div>
+      <div style="display:flex;gap:8px">
+        <div class="urgency-opt selected" onclick="selectUrgency('urgent',this)"><div style="font-size:20px;margin-bottom:3px">🚨</div><div style="font-size:12px;font-weight:700;color:var(--dark)">Urgent</div></div>
+        <div class="urgency-opt" onclick="selectUrgency('today',this)"><div style="font-size:20px;margin-bottom:3px">🕐</div><div style="font-size:12px;font-weight:700;color:var(--dark)">Today</div></div>
+        <div class="urgency-opt" onclick="selectUrgency('flexible',this)"><div style="font-size:20px;margin-bottom:3px">📅</div><div style="font-size:12px;font-weight:700;color:var(--dark)">Flexible</div></div>
+      </div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">📍 Location</div>
+      <div id="location-display" style="font-size:13px;color:var(--or);font-weight:600;margin-bottom:10px">📍 Detecting GPS...</div>
+      <label class="form-label">Full address</label>
+      <input id="job-address" class="form-input" placeholder="e.g. Flat 4B, Srinivas Nagar, Kamareddy">
+    </div>
+  </div>
+  <div style="padding:14px 16px;background:white;border-top:1px solid var(--border);flex-shrink:0">
+    <button id="post-job-btn" class="btn-primary" onclick="postJob()">🚀 Post Job — Get Quotes Fast</button>
+    <div style="text-align:center;font-size:11px;color:var(--muted);margin-top:8px">Free to post · Technicians within 5km get alerted instantly</div>
+  </div>
+</div>
+
+<!-- ══ WAITING ══════════════════════════════════════════════ -->
+<div class="screen" id="screen-waiting" style="align-items:center;justify-content:center;text-align:center;padding:32px">
+  <div style="width:100px;height:100px;border-radius:28px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:46px;margin:0 auto 24px;box-shadow:0 16px 48px rgba(244,80,10,0.3)">🔍</div>
+  <div style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--dark);margin-bottom:8px">Job Posted!</div>
+  <div style="font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:28px">Alerting verified technicians<br>within 5 km of your location</div>
+  <div style="display:flex;gap:12px;margin-bottom:24px;width:100%">
+    <div style="flex:1;background:white;border-radius:14px;padding:16px;border:1.5px solid var(--border);text-align:center">
+      <div id="waiting-bid-count" style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--or)">0</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:3px;font-weight:600">Bids Received</div>
+    </div>
+    <div style="flex:1;background:white;border-radius:14px;padding:16px;border:1.5px solid var(--border);text-align:center">
+      <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--or)">&lt;2m</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:3px;font-weight:600">Avg Response</div>
+    </div>
+  </div>
+  <div id="waiting-preview" style="display:none;background:white;border:1.5px solid var(--or);border-radius:16px;padding:16px;width:100%;margin-bottom:16px;text-align:left"></div>
+  <button onclick="openJobBids(window._currentJobId)" class="btn-primary" style="max-width:300px">View Bids →</button>
+  <button onclick="renderCustomerHome()" class="btn-ghost" style="max-width:300px;margin-top:8px">Back to Home</button>
+</div>
+
+<!-- ══ VIEW BIDS ════════════════════════════════════════════ -->
+<div class="screen" id="screen-bids">
+  <div class="top-bar">
+    <button class="back-btn" onclick="renderCustomerHome()">←</button>
+    <span class="top-title">Bids Received</span>
+  </div>
+  <div class="scroll-body">
+    <div id="bids-list"></div>
+    <div style="height:20px"></div>
+  </div>
+</div>
+
+<!-- ══ CHAT ═════════════════════════════════════════════════ -->
+<div class="screen" id="screen-chat">
+  <div style="background:white;padding:12px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);flex-shrink:0">
+    <button class="back-btn" onclick="goHome()">←</button>
+    <div style="width:40px;height:40px;border-radius:12px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🔧</div>
+    <div style="flex:1">
+      <div id="chat-other-name" style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--dark)"></div>
+      <div style="font-size:12px;color:var(--green);font-weight:600;display:flex;align-items:center;gap:4px"><div style="width:6px;height:6px;border-radius:50%;background:var(--green)"></div>Online</div>
+    </div>
+    <button onclick="window._currentJob?.technicianId&&window.open('tel:'+currentProfile?.phone)" style="width:36px;height:36px;border-radius:10px;background:var(--light);border:none;font-size:16px;cursor:pointer">📞</button>
+  </div>
+  <div style="background:#FFF0EA;border-bottom:1px solid rgba(244,80,10,0.15);padding:8px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+    <span id="chat-job-summary" style="font-size:12px;color:var(--or);font-weight:600"></span>
+    <button onclick="openPayment()" style="background:var(--or);color:white;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer">Pay →</button>
+  </div>
+  <div id="chat-messages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px"></div>
+  <div id="chat-pay-bar" style="display:none;background:#E8F5EE;border-top:1px solid rgba(46,125,79,0.2);padding:10px 16px;align-items:center;justify-content:space-between;flex-shrink:0">
+    <span style="font-size:13px;font-weight:600;color:var(--green)">💚 Job Complete — Please Pay</span>
+    <button onclick="openPayment()" style="background:var(--green);color:white;border:none;border-radius:10px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer">Pay Now</button>
+  </div>
+  <div id="complete-btn-wrap" style="padding:0 16px 0;flex-shrink:0">
+    <button id="complete-btn" onclick="markJobComplete()" style="display:none;width:100%;background:var(--green);color:white;border:none;border-radius:12px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;margin:8px 0">✅ Mark Job as Complete</button>
+  </div>
+  <div style="background:white;border-top:1px solid var(--border);padding:10px 12px;flex-shrink:0">
+    <div style="display:flex;align-items:center;gap:8px">
+      <input id="chat-input" class="form-input" style="flex:1;border-radius:20px;margin:0;padding:9px 14px" placeholder="Type a message..." onkeydown="if(event.key==='Enter')sendChatMessage()">
+      <button onclick="sendChatMessage()" style="width:38px;height:38px;border-radius:50%;background:var(--grad);border:none;color:white;font-size:17px;cursor:pointer">↑</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PAYMENT ══════════════════════════════════════════════ -->
+<div class="screen" id="screen-payment">
+  <div class="top-bar">
+    <button class="back-btn" onclick="show('screen-chat')">←</button>
+    <span class="top-title">Pay for Service</span>
+  </div>
+  <div class="scroll-body" style="padding:16px">
+    <div class="form-section">
+      <div class="form-section-title">Order Summary</div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:14px"><span style="color:var(--mid)" id="payment-service"></span><span id="payment-amount" style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--or)"></span></div>
+      <div style="display:flex;justify-content:space-between;font-size:14px"><span style="color:var(--mid)">Platform fee</span><span style="font-weight:600;color:var(--green)">₹0 FREE</span></div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">Payment Method</div>
+      <div class="pay-method selected" onclick="selectPayMethod(this)"><span style="font-size:22px">📱</span><span style="font-size:14px;font-weight:600;flex:1">UPI / GPay / PhonePe</span><div style="width:20px;height:20px;border-radius:50%;background:var(--or);border:2px solid var(--or);display:flex;align-items:center;justify-content:center;color:white;font-size:11px">✓</div></div>
+      <div class="pay-method" onclick="selectPayMethod(this)"><span style="font-size:22px">💳</span><span style="font-size:14px;font-weight:600;flex:1">Credit / Debit Card</span><div style="width:20px;height:20px;border-radius:50%;border:2px solid var(--border)"></div></div>
+      <div class="pay-method" onclick="selectPayMethod(this)"><span style="font-size:22px">💵</span><span style="font-size:14px;font-weight:600;flex:1">Cash on Completion</span><div style="width:20px;height:20px;border-radius:50%;border:2px solid var(--border)"></div></div>
+    </div>
+  </div>
+  <div style="padding:14px 16px;background:white;border-top:1px solid var(--border);flex-shrink:0">
+    <button id="pay-btn" class="btn-primary" onclick="processPayment()">🔒 Pay Securely</button>
+    <div style="text-align:center;font-size:11px;color:var(--muted);margin-top:8px">256-bit encrypted · Safe & Secure</div>
+  </div>
+</div>
+
+<!-- ══ RATING ════════════════════════════════════════════════ -->
+<div class="screen" id="screen-rating" style="padding:24px 20px;align-items:center">
+  <div style="width:70px;height:70px;border-radius:20px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:34px;margin-bottom:16px">⭐</div>
+  <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--dark);margin-bottom:6px">Rate Your Experience</div>
+  <div style="font-size:14px;color:var(--muted);margin-bottom:20px;text-align:center">Your feedback helps the community</div>
+  <div class="form-section" style="width:100%">
+    <div style="display:flex;gap:8px;justify-content:center;margin-bottom:14px">
+      <span class="star-btn" onclick="rateStar(1)">⭐</span>
+      <span class="star-btn" onclick="rateStar(2)">⭐</span>
+      <span class="star-btn" onclick="rateStar(3)">⭐</span>
+      <span class="star-btn" onclick="rateStar(4)">⭐</span>
+      <span class="star-btn" onclick="rateStar(5)" style="opacity:1;filter:none">⭐</span>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:14px">
+      <span class="rtag selected" onclick="toggleRatingTag(this)">👍 Professional</span>
+      <span class="rtag selected" onclick="toggleRatingTag(this)">⏱️ On time</span>
+      <span class="rtag" onclick="toggleRatingTag(this)">💬 Good communicator</span>
+      <span class="rtag" onclick="toggleRatingTag(this)">🔧 Skilled</span>
+      <span class="rtag" onclick="toggleRatingTag(this)">💰 Fair pricing</span>
+    </div>
+    <textarea id="rating-comment" class="form-input" style="margin-bottom:0;min-height:70px" placeholder="Add a comment (optional)..."></textarea>
+  </div>
+  <button id="rating-submit-btn" class="btn-primary" onclick="submitRating()">Submit Rating →</button>
+  <button class="btn-ghost" onclick="show('screen-success')" style="margin-top:8px">Skip</button>
+</div>
+
+<!-- ══ SUCCESS ══════════════════════════════════════════════ -->
+<div class="screen" id="screen-success" style="align-items:center;justify-content:center;text-align:center;padding:32px;background:white">
+  <div style="width:100px;height:100px;border-radius:28px;background:#E8F5EE;border:3px solid var(--green);display:flex;align-items:center;justify-content:center;font-size:50px;margin:0 auto 24px">✅</div>
+  <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--dark);margin-bottom:8px">All Done! 🎉</div>
+  <div style="font-size:15px;color:var(--muted);line-height:1.6;margin-bottom:28px">Payment complete.<br>Thank you for using FixNow!</div>
+  <button class="btn-primary" onclick="renderCustomerHome()" style="max-width:300px">Back to Home</button>
+</div>
+
+<!-- ══ TECH HOME ════════════════════════════════════════════ -->
+<div class="screen" id="screen-tech-home">
+  <div style="background:var(--dark);padding:20px 20px 16px;flex-shrink:0;position:relative;overflow:hidden">
+    <div style="position:absolute;inset:0;background:radial-gradient(ellipse 70% 100% at 90% 50%,rgba(46,125,79,0.2) 0%,transparent 65%);pointer-events:none"></div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;position:relative">
+      <div>
+        <div id="tech-greeting" style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:white"></div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:8px;background:rgba(46,125,79,0.2);border:1px solid rgba(46,125,79,0.3);border-radius:20px;padding:5px 12px;width:fit-content">
+          <div style="width:7px;height:7px;border-radius:50%;background:#4CAF70"></div>
+          <span style="font-size:12px;font-weight:700;color:#4CAF70">Online — Accepting Jobs</span>
+        </div>
+      </div>
+      <button onclick="logout()" style="background:rgba(255,255,255,0.1);border:none;color:#A09890;border-radius:10px;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;position:relative">Logout</button>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:14px;position:relative">
+      <div style="flex:1;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px">
+        <div id="tech-earnings" style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:white"></div>
+        <div style="font-size:10px;color:#807870;margin-top:3px;font-weight:600">Total Earnings</div>
+      </div>
+      <div style="flex:1;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px">
+        <div id="tech-jobs" style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:white"></div>
+        <div style="font-size:10px;color:#807870;margin-top:3px;font-weight:600">Total Jobs</div>
+      </div>
+      <div style="flex:1;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px">
+        <div id="tech-rating" style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:white"></div>
+        <div style="font-size:10px;color:#807870;margin-top:3px;font-weight:600">Rating</div>
+      </div>
+    </div>
+  </div>
+  <div style="padding:12px 16px 6px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
+    <span style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--dark)">Jobs Near You</span>
+    <span style="font-size:12px;color:var(--muted);font-weight:600">📡 within 10 km</span>
+  </div>
+  <div class="scroll-body">
+    <div id="tech-jobs-list"></div>
+    <div style="height:80px"></div>
+  </div>
+  <div class="bottom-nav">
+    <div class="nav-item active"><div class="nav-icon">🔍</div><div class="nav-lbl">Jobs</div></div>
+    <div class="nav-item" onclick="show('screen-chat')"><div class="nav-icon">💬</div><div class="nav-lbl">Chats</div></div>
+    <div class="nav-item"><div class="nav-icon">📊</div><div class="nav-lbl">Earnings</div></div>
+    <div class="nav-item"><div class="nav-icon">👤</div><div class="nav-lbl">Profile</div></div>
+  </div>
+</div>
+
+<script>
+// Make CATEGORIES available before module script runs
+const CATEGORIES = [
+  { id:"electrical",label:"Electrical",icon:"⚡",subs:["Wiring & Switches","MCB / Fuse Issues","Fan Installation","Light Fitting","Inverter / UPS"] },
+  { id:"plumbing",label:"Plumbing",icon:"🔧",subs:["Tap & Faucet Repair","Pipe Leakage","Drain Cleaning","Toilet Repair","Water Heater"] },
+  { id:"ac",label:"AC & Appliances",icon:"❄️",subs:["AC Repair","AC Service","Refrigerator","Washing Machine","TV / Electronics"] },
+  { id:"carpentry",label:"Carpentry",icon:"🪵",subs:["Door & Window","Furniture Repair","Bed & Wardrobe","Custom Woodwork"] },
+  { id:"auto",label:"Auto Repair",icon:"🚗",subs:["Battery Issues","Tyre Puncture","General Repair","Fuel System"] },
+  { id:"cleaning",label:"Cleaning",icon:"🧹",subs:["Home Deep Clean","Sofa Cleaning","Window Cleaning","Bathroom Cleaning"] },
+  { id:"civil",label:"Civil Work",icon:"🏗️",subs:["Tiling","Painting","Waterproofing","Fabrication"] },
+  { id:"hardware",label:"Hardware & Eng.",icon:"🔩",subs:["Lock & Key","CCTV / Security","Sensor & Automation","Mechanical Work"] },
+];
+// Render skill chips and category grid on page load
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelector('#skills-section div').innerHTML =
+    CATEGORIES.map(c=>`<div class="skill-chip" data-id="${c.id}" onclick="toggleSkill(this)">${c.icon} ${c.label}</div>`).join('');
+  document.querySelector('#screen-customer-home .scroll-body div:first-child').innerHTML =
+    CATEGORIES.map(c=>`
+      <div onclick="openCategory('${c.id}')" style="display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer">
+        <div style="width:60px;height:60px;border-radius:16px;background:white;display:flex;align-items:center;justify-content:center;font-size:26px;border:1.5px solid #EAE4DC;box-shadow:0 2px 12px rgba(14,12,10,0.06)">${c.icon}</div>
+        <div style="font-size:11px;font-weight:600;color:#6B6560;text-align:center;line-height:1.3">${c.label}</div>
+      </div>`).join('');
+  // Show splash by default
+  document.getElementById('screen-splash').style.display = 'flex';
+  document.getElementById('screen-splash').style.flexDirection = 'column';
+});
+
+// Mark last 2 stars as active by default
+document.querySelectorAll('.star-btn').forEach((s,i) => {
+  if (i >= 3) { s.style.opacity = '1'; s.style.filter = 'none'; }
+  else { s.style.opacity = '0.35'; s.style.filter = 'grayscale(1)'; }
+});
+</script>
+</body>
+</html>
