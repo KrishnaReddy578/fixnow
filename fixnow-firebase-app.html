@@ -250,19 +250,21 @@ window.postJob = async function() {
   const btn   = document.getElementById('post-job-btn');
   if (!title) { alert('Please enter what needs fixing'); return; }
   if (!desc)  { alert('Please describe the problem'); return; }
+  if (!addr)  { alert('Please enter your address so technicians know where to come'); return; }
   btn.textContent = 'Posting...'; btn.disabled = true;
   try {
     const jobRef = await addDoc(collection(db,"jobs"), {
       customerId:    currentUser.uid,
       customerName:  currentProfile.name,
-      customerPhone: currentProfile.phone,
+      customerPhone: currentProfile.phone||'',
       category:      window._selectedCat?.id || 'general',
       subcategory:   window._selectedSub || '',
       title, description: desc,
       urgency:       window._urgency || 'urgent',
       status:        'open',
       imageUrls:     [],
-      location: { address: addr || 'Kamareddy', lat: window._lat||18.32, lng: window._lng||78.34 },
+      // GPS optional — address is always required
+      location: { address: addr, lat: window._lat||null, lng: window._lng||null },
       bidCount:      0,
       technicianId:  null,
       createdAt:     serverTimestamp(),
@@ -512,13 +514,28 @@ function renderTechHome() {
   document.getElementById('tech-jobs').textContent     = currentProfile.totalJobs||0;
   document.getElementById('tech-rating').textContent   = `${currentProfile.rating||'—'} ⭐`;
 
-  // Load nearby jobs
+  // Get technician's current location for distance display (optional)
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(pos => {
+      window._techLat = pos.coords.latitude;
+      window._techLng = pos.coords.longitude;
+    }, () => {
+      window._techLat = null;
+      window._techLng = null;
+    });
+  }
+
+  // Load ALL open jobs — no distance filter for MVP testing
   const q = query(collection(db,"jobs"), where("status","==","open"), orderBy("createdAt","desc"));
   const unsub = onSnapshot(q, snap => {
-    const jobs = snap.docs.map(d => ({id:d.id,...d.data()}))
-      .map(j => { if(j.location?.lat) j._dist = getDistanceKm(currentProfile.lat||18.32, currentProfile.lng||78.34, j.location.lat, j.location.lng); return j; })
-      .filter(j => (j._dist||0) <= 10)
-      .sort((a,b) => (a._dist||0)-(b._dist||0));
+    const jobs = snap.docs.map(d => {
+      const job = {id:d.id,...d.data()};
+      // Calculate distance if both locations available
+      if (window._techLat && window._techLng && job.location?.lat && job.location?.lng) {
+        job._dist = getDistanceKm(window._techLat, window._techLng, job.location.lat, job.location.lng);
+      }
+      return job;
+    }).sort((a,b) => (a._dist||999)-(b._dist||999));
 
     const container = document.getElementById('tech-jobs-list');
     if (jobs.length === 0) {
@@ -529,12 +546,14 @@ function renderTechHome() {
       const cat  = CATEGORIES.find(c=>c.id===j.category);
       const urgC = j.urgency==='urgent'?'#C92B2B':j.urgency==='today'?'#F4500A':'#2E7D4F';
       const urgB = j.urgency==='urgent'?'#FDEAEA':j.urgency==='today'?'#FFF0EA':'#E8F5EE';
+      const distLabel = j._dist ? `📍 ${j._dist.toFixed(1)} km away` : `📍 ${j.location?.address||'Nearby'}`;
       return `
       <div class="tech-job-card" id="tjob-${j.id}">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
           <span style="background:${urgB};color:${urgC};font-size:11px;font-weight:700;padding:3px 10px;border-radius:6px">${cat?.icon||'🔧'} ${cat?.label||j.category}</span>
-          <span style="font-size:12px;color:#A09890;font-weight:600">📍 ${j._dist?j._dist.toFixed(1)+'km':'Nearby'} · ${j.urgency}</span>
+          <span style="font-size:12px;color:#A09890;font-weight:600">${distLabel}</span>
         </div>
+        <div style="display:inline-block;background:${urgB};color:${urgC};font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;margin-bottom:8px">${j.urgency==='urgent'?'🔴 URGENT':j.urgency==='today'?'🟠 TODAY':'🟢 FLEXIBLE'}</div>
         <div style="font-weight:700;color:#0E0C0A;font-family:'Syne',sans-serif;margin-bottom:5px">${j.title}</div>
         <div style="font-size:13px;color:#6B6560;line-height:1.5;margin-bottom:10px">${j.description}</div>
         <div style="font-size:12px;color:#A09890;margin-bottom:12px">📍 ${j.location?.address||''} · 💬 ${j.bidCount||0} bids · 🕐 ${j.urgency}</div>
@@ -989,7 +1008,7 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:'Manrope',sans-seri
   </div>
   <div style="padding:12px 16px 6px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
     <span style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--dark)">Jobs Near You</span>
-    <span style="font-size:12px;color:var(--muted);font-weight:600">📡 within 10 km</span>
+    <span style="font-size:12px;color:var(--muted);font-weight:600">📡 All open jobs</span>
   </div>
   <div class="scroll-body">
     <div id="tech-jobs-list"></div>
