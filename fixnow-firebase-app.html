@@ -64,6 +64,28 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:'Manrope',sans-seri
 .subcat-row{background:white;border-radius:14px;padding:16px;margin-bottom:10px;border:1.5px solid var(--border);display:flex;align-items:center;gap:14px;cursor:pointer}
 .subcat-icon{width:44px;height:44px;border-radius:12px;background:#FFF0EA;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
 #toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);color:white;padding:12px 20px;border-radius:12px;font-size:14px;font-weight:600;z-index:9999;display:none;max-width:90%;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.3);transition:opacity 0.4s}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{width:20px;height:20px;border:2.5px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.6s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px}
+.spinner-dark{border-color:rgba(0,0,0,0.12);border-top-color:var(--or)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+.pulse{animation:pulse 2s ease-in-out infinite}
+.empty-state{text-align:center;padding:50px 24px;color:var(--muted)}
+.empty-state .empty-icon{font-size:48px;margin-bottom:16px}
+.empty-state .empty-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:var(--dark);margin-bottom:8px}
+.empty-state .empty-desc{font-size:13px;line-height:1.6}
+.profile-avatar{width:72px;height:72px;border-radius:20px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:32px;color:white;margin:0 auto 12px}
+.stat-card{flex:1;background:white;border-radius:14px;padding:14px 12px;border:1.5px solid var(--border);text-align:center}
+.stat-val{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--or)}
+.stat-lbl{font-size:10px;color:var(--muted);margin-top:3px;font-weight:600}
+.earn-card{background:white;border-radius:14px;padding:16px;border:1.5px solid var(--border);text-align:center;flex:1}
+.earn-val{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--or)}
+.earn-lbl{font-size:11px;color:var(--muted);margin-top:4px;font-weight:600}
+.radius-pill{padding:7px 16px;border-radius:20px;border:1.5px solid var(--border);font-size:12px;font-weight:700;color:var(--mid);cursor:pointer;background:white}
+.radius-pill.selected{border-color:var(--or);background:#FFF0EA;color:var(--or)}
+.chat-item{background:white;margin:6px 16px;border-radius:14px;padding:14px 16px;border:1.5px solid var(--border);display:flex;align-items:center;gap:12px;cursor:pointer}
+.chat-ava{width:44px;height:44px;border-radius:12px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.pending-badge{background:#FFF3CD;color:#856404;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;margin-left:4px}
+.nav-item.active .nav-lbl{color:var(--or)}
 </style>
 </head>
 <body>
@@ -175,10 +197,10 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:'Manrope',sans-seri
     <div style="height:80px"></div>
   </div>
   <div class="bottom-nav">
-    <div class="nav-item"><span style="font-size:22px">🏠</span><span class="nav-lbl" style="color:var(--or)">Home</span></div>
+    <div class="nav-item active"><span style="font-size:22px">🏠</span><span class="nav-lbl" style="color:var(--or)">Home</span></div>
     <div class="nav-item" onclick="show('screen-bids')"><span style="font-size:22px">🔔</span><span class="nav-lbl">Bids</span></div>
-    <div class="nav-item" onclick="show('screen-chat')"><span style="font-size:22px">💬</span><span class="nav-lbl">Chats</span></div>
-    <div class="nav-item"><span style="font-size:22px">👤</span><span class="nav-lbl">Profile</span></div>
+    <div class="nav-item" onclick="openChatList()"><span style="font-size:22px">💬</span><span class="nav-lbl">Chats</span></div>
+    <div class="nav-item" onclick="openProfile()"><span style="font-size:22px">👤</span><span class="nav-lbl">Profile</span></div>
   </div>
 </div>
 
@@ -274,7 +296,7 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:'Manrope',sans-seri
   </div>
   <div style="background:#FFF0EA;border-bottom:1px solid rgba(244,80,10,0.15);padding:8px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
     <span id="chat-job-summary" style="font-size:12px;color:var(--or);font-weight:600"></span>
-    <button onclick="openPayment()" style="background:var(--or);color:white;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer">Pay →</button>
+    <button id="chat-pay-btn" onclick="openPayment()" style="display:none;background:var(--or);color:white;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer">Pay →</button>
   </div>
   <div id="chat-messages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px"></div>
   <div id="complete-btn-wrap" style="padding:0 16px;flex-shrink:0">
@@ -381,17 +403,100 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:'Manrope',sans-seri
   </div>
   <div style="padding:12px 16px 6px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
     <span style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--dark)">Jobs Near You</span>
-    <span style="font-size:12px;color:var(--muted);font-weight:600">📡 All open jobs</span>
+    <span id="tech-gps-label" style="font-size:12px;color:var(--muted);font-weight:600">📡 Detecting GPS...</span>
+  </div>
+  <div style="padding:4px 16px 8px;display:flex;gap:8px;flex-shrink:0">
+    <span class="radius-pill" onclick="setRadius(5)" data-r="5">5 km</span>
+    <span class="radius-pill selected" onclick="setRadius(10)" data-r="10">10 km</span>
+    <span class="radius-pill" onclick="setRadius(25)" data-r="25">25 km</span>
+    <span class="radius-pill" onclick="setRadius(0)" data-r="0">All</span>
   </div>
   <div class="scroll-body">
     <div id="tech-jobs-list"></div>
     <div style="height:80px"></div>
   </div>
   <div class="bottom-nav">
-    <div class="nav-item"><span style="font-size:22px">🔍</span><span class="nav-lbl" style="color:var(--or)">Jobs</span></div>
-    <div class="nav-item" onclick="show('screen-chat')"><span style="font-size:22px">💬</span><span class="nav-lbl">Chats</span></div>
-    <div class="nav-item"><span style="font-size:22px">📊</span><span class="nav-lbl">Earnings</span></div>
-    <div class="nav-item"><span style="font-size:22px">👤</span><span class="nav-lbl">Profile</span></div>
+    <div class="nav-item active"><span style="font-size:22px">🔍</span><span class="nav-lbl" style="color:var(--or)">Jobs</span></div>
+    <div class="nav-item" onclick="openChatList()"><span style="font-size:22px">💬</span><span class="nav-lbl">Chats</span></div>
+    <div class="nav-item" onclick="openEarnings()"><span style="font-size:22px">📊</span><span class="nav-lbl">Earnings</span></div>
+    <div class="nav-item" onclick="openProfile()"><span style="font-size:22px">👤</span><span class="nav-lbl">Profile</span></div>
+  </div>
+</div>
+
+<!-- ══ CHAT LIST ═══════════════════════════════════════════ -->
+<div class="screen" id="screen-chat-list">
+  <div class="top-bar">
+    <button class="back-btn" onclick="goHome()">←</button>
+    <span class="top-title">💬 Chats</span>
+  </div>
+  <div class="scroll-body">
+    <div id="chat-list-container"></div>
+    <div style="height:20px"></div>
+  </div>
+</div>
+
+<!-- ══ PROFILE VIEW ════════════════════════════════════════ -->
+<div class="screen" id="screen-profile-view">
+  <div class="top-bar">
+    <button class="back-btn" onclick="goHome()">←</button>
+    <span class="top-title">My Profile</span>
+  </div>
+  <div class="scroll-body" style="padding:16px">
+    <div style="text-align:center;margin-bottom:16px">
+      <div id="pv-avatar" class="profile-avatar"></div>
+      <div id="pv-name" style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--dark)"></div>
+      <div id="pv-phone" style="font-size:13px;color:var(--muted);margin-top:4px"></div>
+      <div id="pv-role-badge" style="display:inline-block;margin-top:8px;font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px"></div>
+    </div>
+    <div id="pv-stats" style="display:flex;gap:10px;margin-bottom:16px"></div>
+    <div class="form-section">
+      <div class="form-section-title">✏️ Edit Profile</div>
+      <label class="form-label">Full Name</label>
+      <input id="pv-edit-name" class="form-input" placeholder="Your name">
+      <div id="pv-address-section">
+        <label class="form-label">Default Address</label>
+        <input id="pv-edit-address" class="form-input" placeholder="Your default address">
+      </div>
+      <div id="pv-skills-section" style="display:none">
+        <label class="form-label">Your Skills</label>
+        <div id="pv-skills-active" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px"></div>
+        <label class="form-label">Add New Skills <span class="pending-badge">⏳ Requires Admin Approval</span></label>
+        <div id="pv-skills-add" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px"></div>
+      </div>
+      <button id="pv-save-btn" class="btn-primary" onclick="saveProfileChanges()">Save Changes</button>
+    </div>
+    <div id="pv-online-section" style="display:none" class="form-section">
+      <div class="form-section-title">🟢 Availability</div>
+      <div id="pv-online-toggle" onclick="toggleOnline()" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer">
+        <span style="font-size:14px;font-weight:600;color:var(--dark)">Online Status</span>
+        <div id="pv-online-status" style="padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700"></div>
+      </div>
+    </div>
+    <button class="btn-ghost" onclick="logout()" style="margin-top:12px">🚪 Logout</button>
+  </div>
+</div>
+
+<!-- ══ EARNINGS DASHBOARD ══════════════════════════════════ -->
+<div class="screen" id="screen-earnings">
+  <div class="top-bar">
+    <button class="back-btn" onclick="goHome()">←</button>
+    <span class="top-title">💰 Earnings</span>
+  </div>
+  <div class="scroll-body" style="padding:16px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+      <div class="earn-card"><div id="earn-today" class="earn-val">₹0</div><div class="earn-lbl">Today</div></div>
+      <div class="earn-card"><div id="earn-week" class="earn-val">₹0</div><div class="earn-lbl">This Week</div></div>
+      <div class="earn-card"><div id="earn-month" class="earn-val">₹0</div><div class="earn-lbl">This Month</div></div>
+      <div class="earn-card" style="border-color:var(--or)"><div id="earn-total" class="earn-val">₹0</div><div class="earn-lbl">All Time</div></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-bottom:16px">
+      <div class="stat-card"><div id="earn-jobs-count" class="stat-val">0</div><div class="stat-lbl">Jobs Done</div></div>
+      <div class="stat-card"><div id="earn-avg" class="stat-val">₹0</div><div class="stat-lbl">Avg / Job</div></div>
+      <div class="stat-card"><div id="earn-rating" class="stat-val">—</div><div class="stat-lbl">Rating ⭐</div></div>
+    </div>
+    <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--dark);margin-bottom:10px">Recent Completed Jobs</div>
+    <div id="earn-recent-list"></div>
+    <div style="height:20px"></div>
   </div>
 </div>
 
@@ -425,7 +530,7 @@ const APP = {
   otherName: null, currentJob: null, ratingScore: 5,
   urgency: 'urgent', selectedCat: null, selectedSub: null,
   lat: null, lng: null, unsubscribers: [], chatListener: null,
-  isOnline: true,
+  isOnline: true, radius: 10, techGpsReady: false, selectedRole: null,
 };
 
 // ══════════════════════════════════════════════════════════════
@@ -478,12 +583,25 @@ function cleanUp() {
 auth.onAuthStateChanged(async user => {
   if (user) {
     APP.user = user;
-    const snap = await db.collection('users').doc(user.uid).get();
-    if (snap.exists) {
-      APP.profile = snap.data();
-      APP.profile.role === 'customer' ? renderCustomerHome() : renderTechHome();
-    } else {
-      show('screen-role');
+    try {
+      const snap = await db.collection('users').doc(user.uid).get();
+      if (snap.exists) {
+        APP.profile = snap.data();
+        APP.profile.role === 'customer' ? renderCustomerHome() : renderTechHome();
+      } else {
+        // New user — show role selection, then profile setup will write to 'users' collection
+        show('screen-role');
+      }
+    } catch(e) {
+      console.error('Firestore read error on login:', e);
+      if (e.code === 'permission-denied') {
+        toast('Firestore permission denied. Check your security rules for the "users" collection.', 'error');
+        // Still let the user proceed — treat as new user since we can't read their profile
+        show('screen-role');
+      } else {
+        toast('Error loading profile: ' + e.message, 'error');
+        show('screen-role');
+      }
     }
   } else {
     APP.user = null; APP.profile = null;
@@ -812,45 +930,60 @@ function openJobBids(jobId) {
 }
 
 function acceptBid(jobId, bidId, techId, techName, price) {
-  db.collection('bids').doc(bidId).update({status:'accepted'})
-    .then(() => db.collection('jobs').doc(jobId).update({
-      status:'in_progress', technicianId:techId, agreedPrice:price,
-      updatedAt:firebase.firestore.FieldValue.serverTimestamp()
-    }))
-    .then(() => rtdb.ref('chats/'+jobId).set({
-      jobId, customerId:APP.user.uid, customerName:APP.profile.name,
-      technicianId:techId, technicianName:techName,
-      participantIds:{[APP.user.uid]:true,[techId]:true},
-      createdAt:Date.now(), lastMessage:'', lastMessageAt:Date.now()
-    }))
-    .then(() => rtdb.ref('chats/'+jobId+'/messages').push({
-      senderId:'system', senderName:'FixNow', senderRole:'system',
-      text:'✅ '+APP.profile.name+' accepted '+techName+"'s bid of ₹"+price+'. Chat is now open!',
-      type:'system', timestamp:Date.now()
-    }))
-    .then(() => openChat(jobId, techId, techName))
-    .catch(e => { toast('Error accepting bid','error'); console.error(e); });
+  // Get technician phone from the bid doc
+  db.collection('bids').doc(bidId).get().then(bidSnap => {
+    const techPhone = bidSnap.exists ? (bidSnap.data().technicianPhone || '') : '';
+    return db.collection('bids').doc(bidId).update({status:'accepted'})
+      .then(() => db.collection('jobs').doc(jobId).update({
+        status:'in_progress', technicianId:techId, technicianName:techName,
+        technicianPhone:techPhone, agreedPrice:price,
+        updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+      }))
+      .then(() => rtdb.ref('chats/'+jobId).set({
+        jobId, customerId:APP.user.uid, customerName:APP.profile.name,
+        customerPhone:APP.profile.phone||'',
+        technicianId:techId, technicianName:techName, technicianPhone:techPhone,
+        participantIds:{[APP.user.uid]:true,[techId]:true},
+        createdAt:Date.now(), lastMessage:'', lastMessageAt:Date.now()
+      }))
+      .then(() => rtdb.ref('chats/'+jobId+'/messages').push({
+        senderId:'system', senderName:'FixNow', senderRole:'system',
+        text:'\u2705 '+APP.profile.name+' accepted '+techName+"'s bid of \u20b9"+price+'. Chat is now open!',
+        type:'system', timestamp:Date.now()
+      }))
+      .then(() => openChat(jobId, techId, techName));
+  }).catch(e => { toast('Error accepting bid','error'); console.error(e); });
 }
 
-// ══════════════════════════════════════════════════════════════
+// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 // CHAT
-// ══════════════════════════════════════════════════════════════
+// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 function openChat(chatId, otherId, otherName) {
   APP.chatId = chatId; APP.otherId = otherId; APP.otherName = otherName;
   show('screen-chat');
   document.getElementById('chat-other-name').textContent = otherName||'...';
   document.getElementById('chat-messages').innerHTML = '';
-  // Load job info
+  // Hide pay/complete buttons initially
+  document.getElementById('chat-pay-btn').style.display = 'none';
+  document.getElementById('complete-btn').style.display = 'none';
+  // Load job info and set role-based UI
   db.collection('jobs').doc(chatId).get().then(snap => {
     if (!snap.exists) return;
     const j = {id:chatId,...snap.data()};
     APP.currentJob = j;
-    document.getElementById('chat-job-summary').textContent = (j.category||'')+' · ₹'+(j.agreedPrice||'TBD')+' · '+j.status;
-    // Show complete button for technician
-    const cb = document.getElementById('complete-btn');
-    cb.style.display = (APP.profile.role==='technician' && j.status==='in_progress') ? 'block' : 'none';
+    const statusLabel = j.status==='open'?'Open':j.status==='in_progress'?'In Progress':j.status==='completed_by_tech'?'Awaiting Confirm':'Completed';
+    document.getElementById('chat-job-summary').textContent = (j.category||'')+' \u00b7 \u20b9'+(j.agreedPrice||'TBD')+' \u00b7 '+statusLabel;
+    // Pay button: only for customer when job is completed_by_tech or in_progress
+    if (APP.profile.role === 'customer' && (j.status === 'completed_by_tech' || j.status === 'in_progress')) {
+      document.getElementById('chat-pay-btn').style.display = 'block';
+    }
+    // Complete button: only for technician when job is in_progress
+    if (APP.profile.role === 'technician' && j.status === 'in_progress') {
+      document.getElementById('complete-btn').style.display = 'block';
+    }
   });
   // Listen to messages
+  if (APP.chatListener) { try{APP.chatListener()}catch(e){} APP.chatListener=null; }
   const msgRef = rtdb.ref('chats/'+chatId+'/messages');
   const handler = msgRef.on('value', snap => {
     const data = snap.val();
@@ -862,12 +995,12 @@ function openChat(chatId, otherId, otherName) {
         const showConfirm = m.type==='job_complete' && APP.profile.role==='customer';
         return `<div class="system-msg">${m.text}${showConfirm?
           `<div style="display:flex;gap:8px;justify-content:center;margin-top:10px">
-            <button onclick="confirmJobComplete()" style="background:#2E7D4F;color:white;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer">✅ Confirm & Pay</button>
+            <button onclick="confirmJobComplete()" style="background:#2E7D4F;color:white;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer">\u2705 Confirm & Pay</button>
            </div>`:''}</div>`;
       }
       const isMe = m.senderId === APP.user.uid;
       return `<div class="msg-row ${isMe?'mine':''}">
-        <div class="msg-ava" style="background:${isMe?'#0E0C0A':'linear-gradient(135deg,#F4500A,#C93D05)'}">${m.senderRole==='customer'?'👤':'🔧'}</div>
+        <div class="msg-ava" style="background:${isMe?'#0E0C0A':'linear-gradient(135deg,#F4500A,#C93D05)'}">${m.senderRole==='customer'?'\ud83d\udc64':'\ud83d\udd27'}</div>
         <div>
           ${!isMe?`<div style="font-size:10px;color:var(--muted);margin-bottom:2px;font-weight:600;text-transform:uppercase">${m.senderName}</div>`:''}
           <div class="msg-bubble ${isMe?'mine':'theirs'}">${m.text}</div>
@@ -917,8 +1050,23 @@ function confirmJobComplete() {
 
 function callOtherUser() {
   const j = APP.currentJob;
-  const phone = APP.profile.role==='customer' ? j?.technicianPhone : j?.customerPhone;
-  phone ? window.open('tel:'+phone) : toast('Phone number not available','error');
+  let phone = null;
+  if (APP.profile.role === 'customer') {
+    phone = j?.technicianPhone;
+  } else {
+    phone = j?.customerPhone;
+  }
+  if (phone) {
+    window.open('tel:'+phone);
+  } else {
+    // Fallback: try RTDB chat metadata
+    rtdb.ref('chats/'+APP.chatId).once('value').then(snap => {
+      const chat = snap.val();
+      if (!chat) { toast('Phone number not available','error'); return; }
+      const p = APP.profile.role === 'customer' ? chat.technicianPhone : chat.customerPhone;
+      p ? window.open('tel:'+p) : toast('Phone number not available','error');
+    });
+  }
 }
 
 function goHome() {
@@ -947,8 +1095,20 @@ function selectPayMethod(el) {
 function processPayment() {
   const btn = document.getElementById('pay-btn');
   btn.textContent='Processing...'; btn.disabled=true;
+  const j = APP.currentJob;
+  const price = j?.agreedPrice || 0;
   db.collection('jobs').doc(APP.chatId).update({
-    status:'completed', updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+    status:'completed', actualAmountPaid: price,
+    updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+  }).then(() => {
+    // Update technician earnings
+    const techId = j?.technicianId;
+    if (techId) {
+      return db.collection('users').doc(techId).update({
+        totalEarnings: firebase.firestore.FieldValue.increment(price),
+        totalJobs: firebase.firestore.FieldValue.increment(1)
+      });
+    }
   }).then(() => { show('screen-rating'); })
   .catch(() => { toast('Error processing payment','error'); })
   .finally(() => { btn.textContent='🔒 Confirm Payment'; btn.disabled=false; });
@@ -1001,35 +1161,72 @@ function renderTechHome() {
   document.getElementById('tech-rating-display').textContent = (APP.profile.rating||'—')+' ⭐';
   APP.isOnline = APP.profile.isOnline !== false;
   updateOnlineUI();
-  // Get GPS
+  // Get GPS and store to Firestore
+  APP.techGpsReady = false;
+  const gpsLabel = document.getElementById('tech-gps-label');
   if (navigator.geolocation) {
+    gpsLabel.textContent = '📡 Detecting GPS...';
     navigator.geolocation.getCurrentPosition(
-      pos => { APP.lat=pos.coords.latitude; APP.lng=pos.coords.longitude; },
-      () => {}
+      pos => {
+        APP.lat = pos.coords.latitude; APP.lng = pos.coords.longitude;
+        APP.techGpsReady = true;
+        gpsLabel.textContent = '📍 GPS active · Within '+APP.radius+' km';
+        // Store location to Firestore
+        db.collection('users').doc(APP.user.uid).update({
+          location: { lat: APP.lat, lng: APP.lng }
+        }).catch(e => console.error('GPS store error:', e));
+        // Re-render jobs with GPS filter
+        loadTechJobs();
+      },
+      () => {
+        APP.techGpsReady = false;
+        gpsLabel.textContent = '📍 GPS unavailable — showing all jobs';
+        loadTechJobs();
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
     );
+  } else {
+    gpsLabel.textContent = '📍 GPS not supported — showing all jobs';
+    loadTechJobs();
   }
-  // Load ALL open jobs
+}
+
+function loadTechJobs() {
   cleanUp();
   const unsub = db.collection('jobs').where('status','==','open')
     .orderBy('createdAt','desc')
     .onSnapshot(snap => {
-      const jobs = snap.docs.map(d=>{
-        const j={id:d.id,...d.data()};
+      let jobs = snap.docs.map(d => {
+        const j = {id:d.id,...d.data()};
         if (APP.lat && APP.lng && j.location?.lat && j.location?.lng)
           j._dist = distKm(APP.lat, APP.lng, j.location.lat, j.location.lng);
         return j;
-      }).sort((a,b)=>(a._dist||999)-(b._dist||999));
+      });
+      // Filter by radius if GPS is available and radius > 0
+      if (APP.techGpsReady && APP.radius > 0) {
+        jobs = jobs.filter(j => !j._dist || j._dist <= APP.radius);
+      }
+      jobs.sort((a,b) => (a._dist||999) - (b._dist||999));
 
       const el = document.getElementById('tech-jobs-list');
+      const gpsLabel = document.getElementById('tech-gps-label');
+      if (APP.techGpsReady) {
+        gpsLabel.textContent = '📍 GPS active · '+(APP.radius>0?'Within '+APP.radius+' km':'All jobs')+' · '+jobs.length+' found';
+      }
+
       if (!jobs.length) {
-        el.innerHTML='<div style="text-align:center;padding:50px 20px;color:var(--muted)"><div style="font-size:36px;margin-bottom:12px">🔍</div><div style="font-weight:700;color:var(--dark);margin-bottom:6px">No open jobs right now</div><div style="font-size:13px">Stay online — jobs appear in real time</div></div>';
+        if (!APP.techGpsReady) {
+          el.innerHTML='<div class="empty-state"><div class="empty-icon">📍</div><div class="empty-title">Enable Location</div><div class="empty-desc">Turn on GPS to find jobs near you.<br>Without location, all available jobs are shown.</div></div>';
+        } else {
+          el.innerHTML='<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-title">No jobs near you</div><div class="empty-desc">No open jobs within '+APP.radius+' km right now.<br>Try a larger radius or stay online — new jobs appear in real time!</div></div>';
+        }
         return;
       }
-      el.innerHTML = jobs.map(j=>{
+      el.innerHTML = jobs.map(j => {
         const cat=CATS.find(c=>c.id===j.category);
         const uc=j.urgency==='urgent'?'#C92B2B':j.urgency==='today'?'#F4500A':'#2E7D4F';
         const ub=j.urgency==='urgent'?'#FDEAEA':j.urgency==='today'?'#FFF0EA':'#E8F5EE';
-        const dist=j._dist?`📍 ${j._dist.toFixed(1)} km away`:`📍 ${j.location?.address||'Nearby'}`;
+        const dist=j._dist?`📍 ${j._dist.toFixed(1)} km`:`📍 ${j.location?.address||'Nearby'}`;
         return `<div class="tech-job-card">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
             <span style="background:${ub};color:${uc};font-size:11px;font-weight:700;padding:3px 10px;border-radius:6px">${cat?.icon||'🔧'} ${cat?.label||j.category}</span>
@@ -1055,13 +1252,20 @@ function renderTechHome() {
   APP.unsubscribers.push(unsub);
 }
 
+function setRadius(km) {
+  APP.radius = km;
+  document.querySelectorAll('.radius-pill').forEach(p => {
+    p.classList.toggle('selected', Number(p.dataset.r) === km);
+  });
+  loadTechJobs();
+}
+
 function submitBid(jobId) {
   const price  = document.getElementById('bp-'+jobId).value;
   const time   = document.getElementById('bt-'+jobId).value;
   const spares = document.getElementById('bs-'+jobId).value;
   const msg    = document.getElementById('bm-'+jobId).value;
   if (!price || Number(price)<=0) { toast('Enter a valid price','error'); return; }
-  // Check for duplicate bid
   db.collection('bids')
     .where('jobId','==',jobId)
     .where('technicianId','==',APP.user.uid)
@@ -1115,11 +1319,213 @@ function updateOnlineUI() {
   const dot  = document.getElementById('online-dot');
   const text = document.getElementById('online-text');
   const btn  = document.getElementById('online-toggle-btn');
-  if (!dot) return;
-  dot.style.background  = APP.isOnline ? '#4CAF70' : '#A09890';
-  text.style.color      = APP.isOnline ? '#4CAF70' : '#A09890';
-  text.textContent      = APP.isOnline ? 'Online — Tap to go Offline' : 'Offline — Tap to go Online';
-  btn.style.background  = APP.isOnline ? 'rgba(46,125,79,0.2)' : 'rgba(160,152,144,0.15)';
+  if (dot) {
+    dot.style.background  = APP.isOnline ? '#4CAF70' : '#A09890';
+    text.style.color      = APP.isOnline ? '#4CAF70' : '#A09890';
+    text.textContent      = APP.isOnline ? 'Online — Tap to go Offline' : 'Offline — Tap to go Online';
+    btn.style.background  = APP.isOnline ? 'rgba(46,125,79,0.2)' : 'rgba(160,152,144,0.15)';
+  }
+  // Also update profile screen toggle if visible
+  const pvStatus = document.getElementById('pv-online-status');
+  if (pvStatus) {
+    pvStatus.textContent = APP.isOnline ? '🟢 Online' : '⚫ Offline';
+    pvStatus.style.background = APP.isOnline ? '#E8F5EE' : 'var(--light)';
+    pvStatus.style.color = APP.isOnline ? '#2E7D4F' : 'var(--muted)';
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// CHAT LIST
+// ══════════════════════════════════════════════════════════════
+function openChatList() {
+  show('screen-chat-list');
+  const el = document.getElementById('chat-list-container');
+  el.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted)"><div class="spinner spinner-dark"></div> Loading chats...</div>';
+  // Query jobs where user is customer or technician with active status
+  const uid = APP.user.uid;
+  const role = APP.profile.role;
+  const field = role === 'customer' ? 'customerId' : 'technicianId';
+  db.collection('jobs').where(field, '==', uid)
+    .where('status', 'in', ['in_progress', 'completed_by_tech', 'completed'])
+    .orderBy('updatedAt', 'desc')
+    .get()
+    .then(snap => {
+      const jobs = snap.docs.map(d => ({id:d.id,...d.data()}));
+      if (!jobs.length) {
+        el.innerHTML = '<div class="empty-state"><div class="empty-icon">💬</div><div class="empty-title">No chats yet</div><div class="empty-desc">Chats will appear once a job is accepted.<br>Post a job or bid on one to get started!</div></div>';
+        return;
+      }
+      el.innerHTML = jobs.map(j => {
+        const otherName = role === 'customer' ? (j.technicianName||'Technician') : (j.customerName||'Customer');
+        const otherId = role === 'customer' ? j.technicianId : j.customerId;
+        const statusLabel = j.status==='in_progress'?'🟢 Active':j.status==='completed_by_tech'?'⏳ Awaiting Confirm':'✅ Done';
+        const cat = CATS.find(c=>c.id===j.category);
+        return `<div class="chat-item" onclick="openChat('${j.id}','${otherId}','${otherName.replace(/'/g,"\\'")}')">
+          <div class="chat-ava">${role==='customer'?'🔧':'👤'}</div>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="font-weight:700;color:var(--dark);font-family:'Syne',sans-serif;font-size:15px">${otherName}</div>
+              <span style="font-size:10px;color:var(--muted)">${statusLabel}</span>
+            </div>
+            <div style="font-size:12px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cat?.icon||'🔧'} ${j.title} · ₹${j.agreedPrice||'TBD'}</div>
+          </div>
+          <div style="color:var(--muted);font-size:16px">→</div>
+        </div>`;
+      }).join('');
+    })
+    .catch(e => {
+      console.error('Chat list error:', e);
+      el.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Error loading chats</div><div class="empty-desc">Please try again later.</div></div>';
+    });
+}
+
+// ══════════════════════════════════════════════════════════════
+// PROFILE
+// ══════════════════════════════════════════════════════════════
+function openProfile() {
+  show('screen-profile-view');
+  const p = APP.profile;
+  if (!p) return;
+  document.getElementById('pv-avatar').textContent = (p.name||'?')[0].toUpperCase();
+  document.getElementById('pv-name').textContent = p.name;
+  document.getElementById('pv-phone').textContent = p.phone || 'No phone';
+  const badge = document.getElementById('pv-role-badge');
+  if (p.role === 'customer') {
+    badge.textContent = '🏠 Customer';
+    badge.style.background = '#FFF0EA'; badge.style.color = 'var(--or)';
+  } else {
+    badge.textContent = '🔧 Technician';
+    badge.style.background = '#E8F5EE'; badge.style.color = '#2E7D4F';
+  }
+  // Stats
+  const statsEl = document.getElementById('pv-stats');
+  if (p.role === 'customer') {
+    statsEl.innerHTML = `
+      <div class="stat-card"><div class="stat-val">${p.totalJobs||0}</div><div class="stat-lbl">Jobs Posted</div></div>
+      <div class="stat-card"><div class="stat-val">${p.rating||'—'}</div><div class="stat-lbl">Rating ⭐</div></div>`;
+  } else {
+    statsEl.innerHTML = `
+      <div class="stat-card"><div class="stat-val">${p.totalJobs||0}</div><div class="stat-lbl">Jobs</div></div>
+      <div class="stat-card"><div class="stat-val">₹${p.totalEarnings||0}</div><div class="stat-lbl">Earned</div></div>
+      <div class="stat-card"><div class="stat-val">${p.rating||'—'}</div><div class="stat-lbl">Rating ⭐</div></div>`;
+  }
+  // Edit fields
+  document.getElementById('pv-edit-name').value = p.name || '';
+  document.getElementById('pv-edit-address').value = p.defaultAddress || '';
+  document.getElementById('pv-address-section').style.display = p.role === 'customer' ? 'block' : 'none';
+  // Skills section for technician
+  const skillsSection = document.getElementById('pv-skills-section');
+  const onlineSection = document.getElementById('pv-online-section');
+  if (p.role === 'technician') {
+    skillsSection.style.display = 'block';
+    onlineSection.style.display = 'block';
+    // Active skills
+    const activeSkills = p.skills || [];
+    const pendingSkills = p.pendingSkills || [];
+    document.getElementById('pv-skills-active').innerHTML =
+      activeSkills.map(sid => {
+        const c = CATS.find(x=>x.id===sid);
+        return c ? `<span class="skill-chip selected">${c.icon} ${c.label}</span>` : '';
+      }).join('') || '<span style="font-size:12px;color:var(--muted)">No skills set</span>';
+    // Skills to add (not in active or pending)
+    const allIds = [...activeSkills, ...pendingSkills];
+    document.getElementById('pv-skills-add').innerHTML =
+      CATS.filter(c => !allIds.includes(c.id)).map(c =>
+        `<div class="skill-chip" data-id="${c.id}" onclick="this.classList.toggle('selected')">${c.icon} ${c.label}</div>`
+      ).join('') +
+      (pendingSkills.length ? '<div style="width:100%;margin-top:6px;font-size:11px;color:#856404">⏳ Pending: '+
+        pendingSkills.map(sid => { const c=CATS.find(x=>x.id===sid); return c?c.label:''; }).filter(Boolean).join(', ')+'</div>' : '');
+    // Online toggle
+    updateOnlineUI();
+  } else {
+    skillsSection.style.display = 'none';
+    onlineSection.style.display = 'none';
+  }
+}
+
+function saveProfileChanges() {
+  const name = document.getElementById('pv-edit-name').value.trim();
+  if (!name) { toast('Name is required','error'); return; }
+  const btn = document.getElementById('pv-save-btn');
+  btn.textContent = 'Saving...'; btn.disabled = true;
+  const updates = { name };
+  if (APP.profile.role === 'customer') {
+    updates.defaultAddress = document.getElementById('pv-edit-address').value.trim();
+  }
+  if (APP.profile.role === 'technician') {
+    // Gather newly selected skills
+    const newSkills = Array.from(document.querySelectorAll('#pv-skills-add .skill-chip.selected')).map(c => c.dataset.id);
+    if (newSkills.length > 0) {
+      updates.pendingSkills = firebase.firestore.FieldValue.arrayUnion(...newSkills);
+    }
+  }
+  db.collection('users').doc(APP.user.uid).update(updates)
+    .then(() => {
+      APP.profile.name = name;
+      if (updates.defaultAddress !== undefined) APP.profile.defaultAddress = updates.defaultAddress;
+      toast('Profile updated! ✅','success');
+      openProfile(); // Refresh
+    })
+    .catch(e => { toast('Error saving profile','error'); console.error(e); })
+    .finally(() => { btn.textContent = 'Save Changes'; btn.disabled = false; });
+}
+
+// ══════════════════════════════════════════════════════════════
+// EARNINGS DASHBOARD
+// ══════════════════════════════════════════════════════════════
+function openEarnings() {
+  show('screen-earnings');
+  const el = document.getElementById('earn-recent-list');
+  el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)"><div class="spinner spinner-dark"></div> Loading...</div>';
+  // Query all completed jobs for this technician
+  db.collection('jobs')
+    .where('technicianId', '==', APP.user.uid)
+    .where('status', '==', 'completed')
+    .orderBy('updatedAt', 'desc')
+    .get()
+    .then(snap => {
+      const jobs = snap.docs.map(d => ({id:d.id,...d.data()}));
+      const now = new Date();
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+      const weekStart = todayStart - (now.getDay() * 86400000);
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+      let todayEarn=0, weekEarn=0, monthEarn=0, totalEarn=0;
+      jobs.forEach(j => {
+        const price = Math.max(j.agreedPrice||0, j.actualAmountPaid||0);
+        totalEarn += price;
+        const ts = j.updatedAt?.toMillis?.() || 0;
+        if (ts >= todayStart) todayEarn += price;
+        if (ts >= weekStart) weekEarn += price;
+        if (ts >= monthStart) monthEarn += price;
+      });
+      document.getElementById('earn-today').textContent = '₹'+todayEarn;
+      document.getElementById('earn-week').textContent = '₹'+weekEarn;
+      document.getElementById('earn-month').textContent = '₹'+monthEarn;
+      document.getElementById('earn-total').textContent = '₹'+totalEarn;
+      document.getElementById('earn-jobs-count').textContent = jobs.length;
+      document.getElementById('earn-avg').textContent = '₹'+(jobs.length ? Math.round(totalEarn/jobs.length) : 0);
+      document.getElementById('earn-rating').textContent = (APP.profile.rating||'—');
+      // Recent jobs (last 10)
+      const recent = jobs.slice(0, 10);
+      if (!recent.length) {
+        el.innerHTML = '<div class="empty-state" style="padding:24px"><div class="empty-icon">📊</div><div class="empty-title">No completed jobs yet</div><div class="empty-desc">Complete jobs to see your earnings here.</div></div>';
+        return;
+      }
+      el.innerHTML = recent.map(j => {
+        const cat = CATS.find(c=>c.id===j.category);
+        const price = Math.max(j.agreedPrice||0, j.actualAmountPaid||0);
+        const date = j.updatedAt?.toDate?.() ? j.updatedAt.toDate().toLocaleDateString('en-IN',{day:'numeric',month:'short'}) : '';
+        return `<div style="background:white;border-radius:12px;padding:14px;margin-bottom:8px;border:1.5px solid var(--border);display:flex;align-items:center;gap:12px">
+          <div style="width:40px;height:40px;border-radius:10px;background:#E8F5EE;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">${cat?.icon||'🔧'}</div>
+          <div style="flex:1"><div style="font-weight:700;color:var(--dark);font-size:14px">${j.title}</div><div style="font-size:11px;color:var(--muted);margin-top:2px">${j.customerName} · ${date}</div></div>
+          <div style="font-family:'Syne',sans-serif;font-weight:800;color:var(--green);font-size:16px">₹${price}</div>
+        </div>`;
+      }).join('');
+    })
+    .catch(e => {
+      console.error('Earnings error:', e);
+      el.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-desc">Error loading earnings data.</div></div>';
+    });
 }
 </script>
 </body>
