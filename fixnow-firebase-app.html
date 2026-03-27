@@ -3,9 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>FixNow - Local Repairs, Fast</title>
+<title>FixNow — Local Repairs, Fast</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
 
+<!-- Firebase Compat SDKs (no module issues) -->
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
@@ -28,7 +29,6 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:'Manrope',sans-seri
 .top-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:var(--dark);flex:1}
 .btn-primary{width:100%;padding:15px;border-radius:14px;background:var(--grad);color:white;border:none;font-size:16px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif}
 .btn-ghost{width:100%;padding:13px;border-radius:14px;background:white;color:var(--mid);border:1.5px solid var(--border);font-size:14px;font-weight:600;cursor:pointer;font-family:'Manrope',sans-serif}
-.btn-primary:disabled,.btn-ghost:disabled,.toolbar-btn:disabled{opacity:.7;cursor:not-allowed}
 .form-input{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;font-size:14px;color:var(--dark);font-family:'Manrope',sans-serif;outline:none;background:var(--light);margin-bottom:12px}
 .form-input:focus{border-color:var(--or)}
 .form-label{font-size:13px;font-weight:600;color:var(--mid);display:block;margin-bottom:6px}
@@ -64,11 +64,11 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:'Manrope',sans-seri
 .subcat-row{background:white;border-radius:14px;padding:16px;margin-bottom:10px;border:1.5px solid var(--border);display:flex;align-items:center;gap:14px;cursor:pointer}
 .subcat-icon{width:44px;height:44px;border-radius:12px;background:#FFF0EA;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
 #toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);color:white;padding:12px 20px;border-radius:12px;font-size:14px;font-weight:600;z-index:9999;display:none;max-width:90%;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.3);transition:opacity 0.4s}
-#job-alert-banner{position:fixed;top:18px;left:50%;transform:translate(-50%,-18px);width:min(398px,calc(100% - 24px));background:#1A56A0;color:white;padding:12px 16px;border-radius:14px;box-shadow:0 14px 30px rgba(26,86,160,0.28);z-index:10000;opacity:0;pointer-events:none;transition:all .24s ease;font-size:14px;font-weight:700}
-#job-alert-banner.show{opacity:1;pointer-events:auto;transform:translate(-50%,0)}
 @keyframes spin{to{transform:rotate(360deg)}}
 .spinner{width:20px;height:20px;border:2.5px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.6s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px}
 .spinner-dark{border-color:rgba(0,0,0,0.12);border-top-color:var(--or)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+.pulse{animation:pulse 2s ease-in-out infinite}
 .empty-state{text-align:center;padding:50px 24px;color:var(--muted)}
 .empty-state .empty-icon{font-size:48px;margin-bottom:16px}
 .empty-state .empty-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:var(--dark);margin-bottom:8px}
@@ -80,22 +80,44 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:'Manrope',sans-seri
 .earn-card{background:white;border-radius:14px;padding:16px;border:1.5px solid var(--border);text-align:center;flex:1}
 .earn-val{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--or)}
 .earn-lbl{font-size:11px;color:var(--muted);margin-top:4px;font-weight:600}
+.radius-pill{padding:7px 16px;border-radius:20px;border:1.5px solid var(--border);font-size:12px;font-weight:700;color:var(--mid);cursor:pointer;background:white}
+.radius-pill.selected{border-color:var(--or);background:#FFF0EA;color:var(--or)}
 .chat-item{background:white;margin:6px 16px;border-radius:14px;padding:14px 16px;border:1.5px solid var(--border);display:flex;align-items:center;gap:12px;cursor:pointer}
 .chat-ava{width:44px;height:44px;border-radius:12px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
 .pending-badge{background:#FFF3CD;color:#856404;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;margin-left:4px}
 .nav-item.active .nav-lbl{color:var(--or)}
-.toolbar-btn{padding:11px 14px;border-radius:12px;border:1.5px solid var(--border);background:white;color:var(--dark);font-size:13px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif;white-space:nowrap}
-.toolbar-select{flex:1;border:1.5px solid var(--border);border-radius:12px;background:white;padding:11px 14px;font-size:13px;font-weight:700;color:var(--dark);outline:none;font-family:'Manrope',sans-serif}
-.location-card{background:white;border:1.5px solid var(--border);border-radius:24px;padding:28px 24px;max-width:360px;width:100%;text-align:center;box-shadow:0 12px 36px rgba(14,12,10,.08)}
-.location-badge{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;background:#FFF0EA;color:var(--or);font-size:12px;font-weight:800;margin-bottom:16px}
-.location-detail{font-size:13px;color:var(--muted);line-height:1.7;margin:10px 0 18px}
+.job-alert{position:fixed;top:0;left:50%;transform:translateX(-50%);max-width:430px;width:100%;background:linear-gradient(135deg,#1A56A0,#0E3D75);color:white;padding:14px 18px;z-index:9998;display:none;cursor:pointer;box-shadow:0 4px 24px rgba(0,0,0,0.3);animation:slideDown 0.4s ease}
+@keyframes slideDown{from{transform:translateX(-50%) translateY(-100%)}to{transform:translateX(-50%) translateY(0)}}
+.dist-select{padding:8px 12px;border-radius:10px;border:1.5px solid var(--border);font-size:13px;font-weight:600;color:var(--dark);font-family:'Manrope',sans-serif;background:white;outline:none;cursor:pointer;min-width:90px}
+.dist-select:focus{border-color:var(--or)}
+.refresh-btn{display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:10px;border:1.5px solid var(--border);background:white;font-size:12px;font-weight:700;color:var(--or);cursor:pointer;font-family:'Manrope',sans-serif}
+.refresh-btn:active{background:#FFF0EA}
+.refresh-btn.spinning .refresh-icon{animation:spin 0.8s linear infinite}
+.retry-btn{display:inline-block;margin-top:12px;padding:10px 20px;border-radius:10px;background:var(--grad);color:white;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif}
+.gps-gate{position:fixed;inset:0;background:rgba(14,12,10,0.95);z-index:9990;display:flex;align-items:center;justify-content:center;text-align:center;padding:32px}
 </style>
 </head>
 <body>
+
 <div id="toast"></div>
-<div id="job-alert-banner" onclick="focusTechnicianJobs()">🔔 New job nearby! Tap to view</div>
 <div id="recaptcha-container"></div>
 
+<!-- ══ GPS GATE (mandatory location) ══════════════════════ -->
+<div id="gps-gate" class="gps-gate" style="display:none">
+  <div style="max-width:320px">
+    <div style="font-size:64px;margin-bottom:20px">📍</div>
+    <div style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:white;margin-bottom:10px">Enable Location</div>
+    <div id="gps-gate-msg" style="font-size:14px;color:#A09890;line-height:1.6;margin-bottom:24px">FixNow needs your location to connect you with nearby services. Please allow location access.</div>
+    <div id="gps-gate-spinner"><div class="spinner" style="width:32px;height:32px;margin:0 auto"></div><div style="font-size:13px;color:#A09890;margin-top:10px">Detecting your location...</div></div>
+    <button id="gps-gate-retry" onclick="captureGPS()" class="retry-btn" style="display:none">🔄 Retry Location Access</button>
+  </div>
+</div>
+
+<!-- ══ JOB ALERT BANNER ═══════════════════════════════════ -->
+<div id="job-alert-banner" class="job-alert" onclick="this.style.display='none'"></div>
+
+
+<!-- ══ SPLASH ══════════════════════════════════════════════ -->
 <div class="screen active" id="screen-splash" style="background:#0E0C0A;align-items:center;justify-content:center;text-align:center;padding:32px">
   <div style="position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 35%,rgba(244,80,10,0.25) 0%,transparent 65%);pointer-events:none"></div>
   <div style="width:80px;height:80px;border-radius:22px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:40px;color:white;margin:0 auto 20px;box-shadow:0 16px 48px rgba(244,80,10,0.4);position:relative">F</div>
@@ -115,6 +137,7 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:'Manrope',sans-seri
   </div>
 </div>
 
+<!-- ══ LOGIN ════════════════════════════════════════════════ -->
 <div class="screen" id="screen-login" style="background:#0E0C0A;align-items:center;justify-content:center;padding:32px">
   <div style="width:60px;height:60px;border-radius:16px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:28px;color:white;margin-bottom:16px">F</div>
   <div style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:white;margin-bottom:6px">Login to FixNow</div>
@@ -131,7 +154,7 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:'Manrope',sans-seri
     </div>
     <div id="login-step2" style="display:none">
       <div style="font-size:14px;color:var(--mid);margin-bottom:14px;text-align:center">OTP sent to <span id="phone-display" style="font-weight:700;color:var(--dark)"></span></div>
-      <input id="otp-input" type="tel" maxlength="6" placeholder="------" style="width:100%;border:1.5px solid var(--border);border-radius:10px;padding:14px;font-size:28px;text-align:center;letter-spacing:10px;font-family:'Manrope',sans-serif;outline:none;background:var(--light);margin-bottom:12px">
+      <input id="otp-input" type="tel" maxlength="6" placeholder="——————" style="width:100%;border:1.5px solid var(--border);border-radius:10px;padding:14px;font-size:28px;text-align:center;letter-spacing:10px;font-family:'Manrope',sans-serif;outline:none;background:var(--light);margin-bottom:12px">
       <div id="login-error2" style="color:#C92B2B;font-size:13px;text-align:center;margin-bottom:8px;min-height:18px"></div>
       <button id="otp-verify-btn" class="btn-primary" onclick="verifyOTP()">Verify →</button>
       <div style="text-align:center;margin-top:12px;font-size:13px;color:var(--muted)">Didn't get it? <span onclick="resendOTP()" style="color:var(--or);font-weight:700;cursor:pointer">Resend OTP</span></div>
@@ -140,6 +163,7 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:'Manrope',sans-seri
   <button onclick="show('screen-splash')" style="margin-top:16px;background:none;border:none;color:#605850;font-size:14px;cursor:pointer">← Back</button>
 </div>
 
+<!-- ══ ROLE SELECT ══════════════════════════════════════════ -->
 <div class="screen" id="screen-role" style="background:var(--light);align-items:center;justify-content:center;padding:32px">
   <div style="font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:var(--dark);margin-bottom:8px;text-align:center">I am a...</div>
   <div style="font-size:14px;color:var(--muted);margin-bottom:28px">Select how you want to use FixNow</div>
@@ -157,6 +181,7 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:'Manrope',sans-seri
   </div>
 </div>
 
+<!-- ══ PROFILE SETUP ════════════════════════════════════════ -->
 <div class="screen" id="screen-profile" style="background:var(--light);padding:32px;justify-content:center">
   <div id="profile-role-label" style="font-size:14px;font-weight:700;color:var(--or);margin-bottom:16px;text-align:center"></div>
   <div style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--dark);margin-bottom:6px;text-align:center">Complete your profile</div>
@@ -172,17 +197,7 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:'Manrope',sans-seri
   </div>
 </div>
 
-<div class="screen" id="screen-location-required" style="align-items:center;justify-content:center;padding:24px">
-  <div class="location-card">
-    <div class="location-badge">📍 Location Required</div>
-    <div style="width:82px;height:82px;border-radius:24px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:40px;color:white;margin:0 auto 18px">📡</div>
-    <div style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--dark)">Enable location to use FixNow</div>
-    <div id="location-gate-detail" class="location-detail">We need your live GPS to match nearby jobs and keep technician discovery accurate.</div>
-    <button id="location-retry-btn" class="btn-primary" onclick="retryLocationAccess()">Retry Location</button>
-    <button class="btn-ghost" onclick="logout()" style="margin-top:8px">Logout</button>
-  </div>
-</div>
-
+<!-- ══ CUSTOMER HOME ════════════════════════════════════════ -->
 <div class="screen" id="screen-customer-home">
   <div style="background:var(--dark);padding:20px 20px 20px;flex-shrink:0;position:relative;overflow:hidden">
     <div style="position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 80% 50%,rgba(244,80,10,0.15) 0%,transparent 60%);pointer-events:none"></div>
@@ -194,7 +209,7 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:'Manrope',sans-seri
       <button onclick="logout()" style="background:rgba(255,255,255,0.1);border:none;color:#A09890;border-radius:10px;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer">Logout</button>
     </div>
     <div style="margin-top:14px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:8px;position:relative">
-      <span>📍</span><span id="customer-location-chip" style="font-size:14px;color:#C9C0B8">GPS ready for nearby repair matches</span>
+      <span>🔍</span><span style="font-size:14px;color:#605850">Search for a service...</span>
     </div>
   </div>
   <div class="scroll-body">
@@ -213,9 +228,10 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:'Manrope',sans-seri
   </div>
 </div>
 
+<!-- ══ SUBCATEGORY ══════════════════════════════════════════ -->
 <div class="screen" id="screen-subcategory">
   <div class="top-bar">
-    <button class="back-btn" onclick="goHome()">←</button>
+    <button class="back-btn" onclick="show('screen-customer-home')">←</button>
     <span id="subcat-title" class="top-title"></span>
   </div>
   <div class="scroll-body" style="padding:16px">
@@ -223,6 +239,7 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:'Manrope',sans-seri
   </div>
 </div>
 
+<!-- ══ POST JOB ═════════════════════════════════════════════ -->
 <div class="screen" id="screen-post-job">
   <div class="top-bar">
     <button class="back-btn" onclick="show('screen-subcategory')">←</button>
@@ -247,18 +264,18 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:'Manrope',sans-seri
     </div>
     <div class="form-section">
       <div class="form-section-title">📍 Your Location *</div>
-      <div id="gps-status" style="font-size:12px;color:var(--or);font-weight:600;margin-bottom:8px">📡 Checking your live GPS...</div>
+      <div id="gps-status" style="font-size:12px;color:var(--or);font-weight:600;margin-bottom:8px">📡 Tap below to detect GPS or type your address</div>
       <input id="job-address" class="form-input" placeholder="e.g. Flat 4B, Srinivas Nagar, Kamareddy">
-      <button onclick="detectLocation()" style="background:var(--light);border:1.5px solid var(--border);border-radius:10px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;width:100%;margin-bottom:4px">📍 Retry Location</button>
-      <div style="font-size:11px;color:var(--muted);margin-top:6px">GPS is mandatory so technicians only see jobs near them.</div>
+      <button onclick="detectLocation()" style="background:var(--light);border:1.5px solid var(--border);border-radius:10px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;width:100%;margin-bottom:4px">📍 Detect My Location</button>
     </div>
   </div>
   <div style="padding:14px 16px;background:white;border-top:1px solid var(--border);flex-shrink:0">
-    <button id="post-job-btn" class="btn-primary" onclick="postJob()">🚀 Post Job - Get Quotes Fast</button>
-    <div style="text-align:center;font-size:11px;color:var(--muted);margin-top:8px">Free to post - Technicians get alerted instantly</div>
+    <button id="post-job-btn" class="btn-primary" onclick="postJob()">🚀 Post Job — Get Quotes Fast</button>
+    <div style="text-align:center;font-size:11px;color:var(--muted);margin-top:8px">Free to post · Technicians get alerted instantly</div>
   </div>
 </div>
 
+<!-- ══ WAITING ══════════════════════════════════════════════ -->
 <div class="screen" id="screen-waiting" style="align-items:center;justify-content:center;text-align:center;padding:32px">
   <div style="width:100px;height:100px;border-radius:28px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:46px;margin:0 auto 24px;box-shadow:0 16px 48px rgba(244,80,10,0.3)">🔍</div>
   <div style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--dark);margin-bottom:8px">Job Posted!</div>
@@ -275,12 +292,13 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:'Manrope',sans-seri
   </div>
   <div id="waiting-preview" style="display:none;background:white;border:1.5px solid var(--or);border-radius:16px;padding:16px;width:100%;margin-bottom:16px;text-align:left"></div>
   <button onclick="openJobBids(APP.currentJobId)" class="btn-primary" style="max-width:300px">View All Bids →</button>
-  <button onclick="goHome()" class="btn-ghost" style="max-width:300px;margin-top:8px">Back to Home</button>
+  <button onclick="show('screen-customer-home')" class="btn-ghost" style="max-width:300px;margin-top:8px">Back to Home</button>
 </div>
 
+<!-- ══ VIEW BIDS ════════════════════════════════════════════ -->
 <div class="screen" id="screen-bids">
   <div class="top-bar">
-    <button class="back-btn" onclick="goHome()">←</button>
+    <button class="back-btn" onclick="show('screen-customer-home')">←</button>
     <span class="top-title">Bids Received</span>
   </div>
   <div class="scroll-body">
@@ -289,13 +307,14 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:'Manrope',sans-seri
   </div>
 </div>
 
+<!-- ══ CHAT ═════════════════════════════════════════════════ -->
 <div class="screen" id="screen-chat">
   <div style="background:white;padding:12px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);flex-shrink:0">
     <button class="back-btn" onclick="goHome()" style="background:none;border:none">←</button>
     <div style="width:40px;height:40px;border-radius:12px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🔧</div>
     <div style="flex:1">
       <div id="chat-other-name" style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--dark)">...</div>
-      <div style="font-size:12px;color:var(--green);font-weight:600;display:flex;align-items:center;gap:4px"><div style="width:6px;height:6px;border-radius:50%;background:var(--green)"></div>Live chat</div>
+      <div style="font-size:12px;color:var(--green);font-weight:600;display:flex;align-items:center;gap:4px"><div style="width:6px;height:6px;border-radius:50%;background:var(--green)"></div>Online</div>
     </div>
     <button onclick="callOtherUser()" style="width:36px;height:36px;border-radius:10px;background:var(--light);border:none;font-size:16px;cursor:pointer">📞</button>
   </div>
@@ -315,6 +334,7 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:'Manrope',sans-seri
   </div>
 </div>
 
+<!-- ══ PAYMENT ══════════════════════════════════════════════ -->
 <div class="screen" id="screen-payment">
   <div class="top-bar">
     <button class="back-btn" onclick="show('screen-chat')">←</button>
@@ -328,11 +348,13 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:'Manrope',sans-seri
     </div>
     <div class="form-section">
       <div class="form-section-title">Payment Method</div>
-      <div class="pay-method selected" onclick="selectPayMethod(this)"><span style="font-size:22px">📱</span><span style="font-size:14px;font-weight:600;flex:1">UPI / GPay / PhonePe</span><div style="width:20px;height:20px;border-radius:50%;background:var(--or);border:2px solid var(--or);display:flex;align-items:center;justify-content:center;color:white;font-size:11px">✓</div></div>
+      <div class="pay-method selected" onclick="selectPayMethod(this)"><span style="font-size:22px">📱</span><span style="font-size:14px;font-weight:600;flex:1">UPI / GPay / PhonePe</span><div id="pm1" style="width:20px;height:20px;border-radius:50%;background:var(--or);border:2px solid var(--or);display:flex;align-items:center;justify-content:center;color:white;font-size:11px">✓</div></div>
       <div class="pay-method" onclick="selectPayMethod(this)"><span style="font-size:22px">💳</span><span style="font-size:14px;font-weight:600;flex:1">Credit / Debit Card</span><div style="width:20px;height:20px;border-radius:50%;border:2px solid var(--border)"></div></div>
       <div class="pay-method" onclick="selectPayMethod(this)"><span style="font-size:22px">💵</span><span style="font-size:14px;font-weight:600;flex:1">Cash on Completion</span><div style="width:20px;height:20px;border-radius:50%;border:2px solid var(--border)"></div></div>
     </div>
-    <div style="background:#E8F5EE;border-radius:12px;padding:14px;font-size:13px;color:#2E7D4F;font-weight:600">💡 For now, pay directly to the technician via UPI or cash. Digital payment integration can be added later.</div>
+    <div style="background:#E8F5EE;border-radius:12px;padding:14px;font-size:13px;color:#2E7D4F;font-weight:600">
+      💡 For now, pay directly to the technician via UPI or cash. Digital payment integration coming soon.
+    </div>
   </div>
   <div style="padding:14px 16px;background:white;border-top:1px solid var(--border);flex-shrink:0">
     <button id="pay-btn" class="btn-primary" onclick="processPayment()">🔒 Confirm Payment</button>
@@ -340,6 +362,7 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:'Manrope',sans-seri
   </div>
 </div>
 
+<!-- ══ RATING ════════════════════════════════════════════════ -->
 <div class="screen" id="screen-rating" style="padding:24px 20px;align-items:center">
   <div style="width:70px;height:70px;border-radius:20px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:34px;margin-bottom:16px">⭐</div>
   <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--dark);margin-bottom:6px">Rate Your Experience</div>
@@ -365,6 +388,7 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:'Manrope',sans-seri
   <button class="btn-ghost" onclick="show('screen-success')" style="margin-top:8px">Skip</button>
 </div>
 
+<!-- ══ SUCCESS ══════════════════════════════════════════════ -->
 <div class="screen" id="screen-success" style="align-items:center;justify-content:center;text-align:center;padding:32px;background:white">
   <div style="width:100px;height:100px;border-radius:28px;background:#E8F5EE;border:3px solid var(--green);display:flex;align-items:center;justify-content:center;font-size:50px;margin:0 auto 24px">✅</div>
   <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--dark);margin-bottom:8px">All Done! 🎉</div>
@@ -372,6 +396,7 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:'Manrope',sans-seri
   <button class="btn-primary" onclick="goHome()" style="max-width:300px">Back to Home</button>
 </div>
 
+<!-- ══ TECH HOME ════════════════════════════════════════════ -->
 <div class="screen" id="screen-tech-home">
   <div style="background:var(--dark);padding:20px 20px 16px;flex-shrink:0;position:relative;overflow:hidden">
     <div style="position:absolute;inset:0;background:radial-gradient(ellipse 70% 100% at 90% 50%,rgba(46,125,79,0.2) 0%,transparent 65%);pointer-events:none"></div>
@@ -380,7 +405,7 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:'Manrope',sans-seri
         <div id="tech-greeting" style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:white"></div>
         <div id="online-toggle-btn" onclick="toggleOnline()" style="display:flex;align-items:center;gap:6px;margin-top:8px;background:rgba(46,125,79,0.2);border:1px solid rgba(46,125,79,0.3);border-radius:20px;padding:6px 14px;width:fit-content;cursor:pointer">
           <div id="online-dot" style="width:7px;height:7px;border-radius:50%;background:#4CAF70"></div>
-          <span id="online-text" style="font-size:12px;font-weight:700;color:#4CAF70">Online - Tap to go Offline</span>
+          <span id="online-text" style="font-size:12px;font-weight:700;color:#4CAF70">Online — Tap to go Offline</span>
         </div>
       </div>
       <button onclick="logout()" style="background:rgba(255,255,255,0.1);border:none;color:#A09890;border-radius:10px;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;position:relative">Logout</button>
@@ -402,18 +427,23 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:'Manrope',sans-seri
   </div>
   <div style="padding:12px 16px 6px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
     <span style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--dark)">Jobs Near You</span>
-    <span id="tech-gps-label" style="font-size:12px;color:var(--muted);font-weight:600">📡 Checking location...</span>
+    <span id="tech-gps-label" style="font-size:12px;color:var(--muted);font-weight:600">📍 GPS active</span>
   </div>
-  <div style="padding:4px 16px 8px;display:flex;gap:8px;flex-shrink:0">
-    <select id="radius-select" class="toolbar-select" onchange="setRadius(Number(this.value))">
+  <div style="padding:4px 16px 8px;display:flex;gap:8px;align-items:center;flex-shrink:0">
+    <select id="dist-dropdown" class="dist-select" onchange="setRadius(Number(this.value))">
       <option value="5">5 KM</option>
       <option value="10" selected>10 KM</option>
       <option value="15">15 KM</option>
       <option value="25">25 KM</option>
     </select>
-    <button id="refresh-jobs-btn" class="toolbar-btn" onclick="refreshTechJobs()">🔄 Refresh Jobs</button>
+    <button class="refresh-btn" id="refresh-jobs-btn" onclick="refreshJobs()">
+      <span class="refresh-icon">🔄</span> Refresh Jobs
+    </button>
   </div>
-  <div id="tech-jobs-list" class="scroll-body"></div>
+  <div class="scroll-body">
+    <div id="tech-jobs-list"></div>
+    <div style="height:80px"></div>
+  </div>
   <div class="bottom-nav">
     <div class="nav-item active"><span style="font-size:22px">🔍</span><span class="nav-lbl" style="color:var(--or)">Jobs</span></div>
     <div class="nav-item" onclick="openChatList()"><span style="font-size:22px">💬</span><span class="nav-lbl">Chats</span></div>
@@ -422,6 +452,7 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:'Manrope',sans-seri
   </div>
 </div>
 
+<!-- ══ CHAT LIST ═══════════════════════════════════════════ -->
 <div class="screen" id="screen-chat-list">
   <div class="top-bar">
     <button class="back-btn" onclick="goHome()">←</button>
@@ -433,6 +464,7 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:'Manrope',sans-seri
   </div>
 </div>
 
+<!-- ══ PROFILE VIEW ════════════════════════════════════════ -->
 <div class="screen" id="screen-profile-view">
   <div class="top-bar">
     <button class="back-btn" onclick="goHome()">←</button>
@@ -473,6 +505,7 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:'Manrope',sans-seri
   </div>
 </div>
 
+<!-- ══ EARNINGS DASHBOARD ══════════════════════════════════ -->
 <div class="screen" id="screen-earnings">
   <div class="top-bar">
     <button class="back-btn" onclick="goHome()">←</button>
@@ -497,499 +530,309 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:'Manrope',sans-seri
 </div>
 
 <script>
+// ══════════════════════════════════════════════════════════════
+// FIREBASE INIT
+// ══════════════════════════════════════════════════════════════
 const firebaseConfig = {
-  apiKey: "AIzaSyD9NcW3ichExrKvjUd_xvRxOsDwIh9Jndg",
-  authDomain: "fixnow-app-test.firebaseapp.com",
-  databaseURL: "https://fixnow-app-test-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "fixnow-app-test",
-  storageBucket: "fixnow-app-test.firebasestorage.app",
+  apiKey:            "AIzaSyD9NcW3ichExrKvjUd_xvRxOsDwIh9Jndg",
+  authDomain:        "fixnow-app-test.firebaseapp.com",
+  databaseURL:       "https://fixnow-app-test-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:         "fixnow-app-test",
+  storageBucket:     "fixnow-app-test.firebasestorage.app",
   messagingSenderId: "425145556302",
-  appId: "1:425145556302:web:1d2ef9900f90271c95121f"
+  appId:             "1:425145556302:web:1d2ef9900f90271c95121f"
 };
 firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
-const rtdb = firebase.database();
+const auth    = firebase.auth();
+const db      = firebase.firestore();
+const rtdb    = firebase.database();
 
-if (/^(localhost|127\.0\.0\.1)$/.test(window.location.hostname)) {
-  auth.settings.appVerificationDisabledForTesting = true;
-}
+// Enable test phone numbers — allows Firebase test credentials to bypass reCAPTCHA
+auth.settings.appVerificationDisabledForTesting = true;
 
+// ══════════════════════════════════════════════════════════════
+// APP STATE
+// ══════════════════════════════════════════════════════════════
 const APP = {
-  user: null,
-  profile: null,
-  confirmResult: null,
-  currentJobId: null,
-  chatId: null,
-  otherId: null,
-  otherName: null,
-  currentJob: null,
-  urgency: "urgent",
-  selectedCat: null,
-  selectedSub: null,
-  lat: null,
-  lng: null,
-  unsubscribers: [],
-  chatListener: null,
-  isOnline: true,
-  radius: 10,
-  selectedRole: null,
-  locationReady: false,
-  locationLoading: false,
-  locationPromise: null,
-  lastLocationResolvedAt: 0,
-  lastLocationSavedAt: 0,
-  jobAlertTimer: null,
-  techJobsPrimed: false
+  user: null, profile: null, confirmResult: null,
+  currentJobId: null, chatId: null, otherId: null,
+  otherName: null, currentJob: null, ratingScore: 5,
+  urgency: 'urgent', selectedCat: null, selectedSub: null,
+  lat: null, lng: null, unsubscribers: [], chatListener: null,
+  isOnline: true, radius: 10, techGpsReady: false, selectedRole: null,
+  prevJobIds: new Set(), jobAlertTimer: null, _pendingGPSAction: null,
 };
 
+// ══════════════════════════════════════════════════════════════
+// CATEGORIES
+// ══════════════════════════════════════════════════════════════
 const CATS = [
-  {id:"electrical", label:"Electrical", icon:"⚡", subs:["Wiring & Switches","MCB / Fuse Issues","Fan Installation","Light Fitting","Inverter / UPS"]},
-  {id:"plumbing", label:"Plumbing", icon:"🔧", subs:["Tap & Faucet Repair","Pipe Leakage","Drain Cleaning","Toilet Repair","Water Heater"]},
-  {id:"ac", label:"AC & Appliances", icon:"❄️", subs:["AC Repair","AC Service","Refrigerator","Washing Machine","TV / Electronics"]},
-  {id:"carpentry", label:"Carpentry", icon:"🪵", subs:["Door & Window","Furniture Repair","Bed & Wardrobe","Custom Woodwork"]},
-  {id:"auto", label:"Auto Repair", icon:"🚗", subs:["Battery Issues","Tyre Puncture","General Repair","Fuel System"]},
-  {id:"cleaning", label:"Cleaning", icon:"🧹", subs:["Home Deep Clean","Sofa Cleaning","Window Cleaning","Bathroom Cleaning"]},
-  {id:"civil", label:"Civil Work", icon:"🏗️", subs:["Tiling","Painting","Waterproofing","Fabrication"]},
-  {id:"hardware", label:"Hardware & Eng.", icon:"🔩", subs:["Lock & Key","CCTV / Security","Sensor & Automation","Mechanical Work"]}
+  {id:'electrical', label:'Electrical', icon:'⚡', subs:['Wiring & Switches','MCB / Fuse Issues','Fan Installation','Light Fitting','Inverter / UPS']},
+  {id:'plumbing',   label:'Plumbing',   icon:'🔧', subs:['Tap & Faucet Repair','Pipe Leakage','Drain Cleaning','Toilet Repair','Water Heater']},
+  {id:'ac',         label:'AC & Appliances', icon:'❄️', subs:['AC Repair','AC Service','Refrigerator','Washing Machine','TV / Electronics']},
+  {id:'carpentry',  label:'Carpentry',  icon:'🪵', subs:['Door & Window','Furniture Repair','Bed & Wardrobe','Custom Woodwork']},
+  {id:'auto',       label:'Auto Repair',icon:'🚗', subs:['Battery Issues','Tyre Puncture','General Repair','Fuel System']},
+  {id:'cleaning',   label:'Cleaning',   icon:'🧹', subs:['Home Deep Clean','Sofa Cleaning','Window Cleaning','Bathroom Cleaning']},
+  {id:'civil',      label:'Civil Work', icon:'🏗️', subs:['Tiling','Painting','Waterproofing','Fabrication']},
+  {id:'hardware',   label:'Hardware & Eng.', icon:'🔩', subs:['Lock & Key','CCTV / Security','Sensor & Automation','Mechanical Work']},
 ];
 
+// ══════════════════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════════════════
 function show(id) {
-  document.querySelectorAll(".screen").forEach(screen => screen.classList.remove("active"));
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   const el = document.getElementById(id);
-  if (el) el.classList.add("active");
+  if (el) el.classList.add('active');
 }
 
 function toast(msg, type) {
-  const t = document.getElementById("toast");
+  const t = document.getElementById('toast');
   t.textContent = msg;
-  t.style.background = type === "error" ? "#C92B2B" : type === "success" ? "#2E7D4F" : "#1A1814";
-  t.style.display = "block";
-  t.style.opacity = "1";
+  t.style.background = type==='error'?'#C92B2B':type==='success'?'#2E7D4F':'#1A1814';
+  t.style.display = 'block'; t.style.opacity = '1';
   clearTimeout(t._timer);
-  t._timer = setTimeout(() => {
-    t.style.opacity = "0";
-    setTimeout(() => { t.style.display = "none"; }, 400);
-  }, 3200);
+  t._timer = setTimeout(() => { t.style.opacity='0'; setTimeout(()=>t.style.display='none',400); }, 3000);
 }
 
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
-function distKm(lat1, lng1, lat2, lng2) {
-  const R = 6371;
-  const dL = (lat2 - lat1) * Math.PI / 180;
-  const dG = (lng2 - lng1) * Math.PI / 180;
-  const a = Math.sin(dL / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dG / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-function hasCoords(value) {
-  return typeof value?.lat === "number" && Number.isFinite(value.lat) && typeof value?.lng === "number" && Number.isFinite(value.lng);
+function distKm(lat1,lng1,lat2,lng2) {
+  const R=6371, dL=(lat2-lat1)*Math.PI/180, dG=(lng2-lng1)*Math.PI/180;
+  const a=Math.sin(dL/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dG/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
 
 function cleanUp() {
-  APP.unsubscribers.forEach(unsub => {
-    try { unsub(); } catch (e) {}
-  });
+  APP.unsubscribers.forEach(u => { try{u()}catch(e){} });
   APP.unsubscribers = [];
-  if (APP.chatListener) {
-    try { APP.chatListener(); } catch (e) {}
-    APP.chatListener = null;
-  }
+  if (APP.chatListener) { try{APP.chatListener()}catch(e){} APP.chatListener=null; }
 }
 
-function renderLoadingCard(message) {
-  return `<div class="empty-state"><div class="empty-icon"><span class="spinner spinner-dark" style="margin:0"></span></div><div class="empty-title">Loading</div><div class="empty-desc">${escapeHtml(message)}</div></div>`;
-}
-
-function renderEmptyCard(icon, title, description, actionHtml) {
-  return `<div class="empty-state"><div class="empty-icon">${icon}</div><div class="empty-title">${escapeHtml(title)}</div><div class="empty-desc">${description}</div>${actionHtml ? `<div style="margin-top:16px">${actionHtml}</div>` : ""}</div>`;
-}
-
-function formatTime(ts) {
-  if (!ts) return "";
-  return new Date(ts).toLocaleTimeString("en-IN", {hour: "2-digit", minute: "2-digit"});
-}
-
-function formatChatStatus(status) {
-  if (status === "completed_by_tech") return "⏳ Awaiting Confirm";
-  if (status === "completed") return "✅ Done";
-  return "🟢 Active";
-}
-
-function updateLocationLabels() {
-  const status = APP.locationReady
-    ? `✅ GPS ready: ${APP.lat.toFixed(3)}, ${APP.lng.toFixed(3)}`
-    : "Enable location to use FixNow";
-  const gpsStatus = document.getElementById("gps-status");
-  if (gpsStatus) gpsStatus.textContent = APP.locationLoading ? "📡 Checking live GPS..." : status;
-  const techLabel = document.getElementById("tech-gps-label");
-  if (techLabel) {
-    techLabel.textContent = APP.locationLoading
-      ? "📡 Refreshing live GPS..."
-      : APP.locationReady
-        ? `📍 GPS active · ${APP.radius} KM radius`
-        : "📍 Location required";
-  }
-  const customerChip = document.getElementById("customer-location-chip");
-  if (customerChip) customerChip.textContent = APP.locationReady ? "GPS ready for accurate nearby technician matches" : "Enable location to use FixNow";
-}
-
-function setLocationGateState(detail, loading) {
-  show("screen-location-required");
-  document.getElementById("location-gate-detail").textContent = detail || "We need your live GPS to match nearby jobs and keep technician discovery accurate.";
-  const btn = document.getElementById("location-retry-btn");
-  btn.disabled = !!loading;
-  btn.innerHTML = loading ? '<span class="spinner"></span>Checking location...' : "Retry Location";
-}
-
-function persistUserLocation(lat, lng) {
-  if (!APP.user) return Promise.resolve();
-  const previous = APP.profile?.location;
-  const movedEnough = !hasCoords(previous) || distKm(previous.lat, previous.lng, lat, lng) > 0.05;
-  const staleEnough = Date.now() - APP.lastLocationSavedAt > 300000;
-  if (!movedEnough && !staleEnough) return Promise.resolve();
-  APP.lastLocationSavedAt = Date.now();
-  return db.collection("users").doc(APP.user.uid).set({
-    location: {lat, lng},
-    locationUpdatedAt: firebase.firestore.FieldValue.serverTimestamp()
-  }, {merge: true}).then(() => {
-    if (APP.profile) APP.profile.location = {lat, lng};
-  });
-}
-
-function ensureAppLocation(options = {}) {
-  const {forceRefresh = false, showGateOnError = true} = options;
-  const locationFresh = APP.locationReady && Date.now() - APP.lastLocationResolvedAt < 120000;
-  if (!forceRefresh && locationFresh) {
-    updateLocationLabels();
-    return Promise.resolve({lat: APP.lat, lng: APP.lng});
-  }
-  if (APP.locationPromise) return APP.locationPromise;
-  if (!navigator.geolocation) {
-    APP.locationReady = false;
-    updateLocationLabels();
-    if (showGateOnError) setLocationGateState("Enable location to use FixNow. Your browser does not support GPS access.", false);
-    return Promise.reject(new Error("Geolocation not supported"));
-  }
-  APP.locationLoading = true;
-  updateLocationLabels();
-  if (showGateOnError) setLocationGateState("Checking your GPS. Please allow location access to continue.", true);
-  APP.locationPromise = new Promise((resolve, reject) => {
-    navigator.geolocation.getCurrentPosition(
-      position => {
-        APP.lat = position.coords.latitude;
-        APP.lng = position.coords.longitude;
-        APP.locationReady = true;
-        APP.locationLoading = false;
-        APP.locationPromise = null;
-        APP.lastLocationResolvedAt = Date.now();
-        updateLocationLabels();
-        persistUserLocation(APP.lat, APP.lng)
-          .catch(err => console.error("Location sync error:", err))
-          .finally(() => resolve({lat: APP.lat, lng: APP.lng}));
-      },
-      error => {
-        APP.locationReady = false;
-        APP.locationLoading = false;
-        APP.locationPromise = null;
-        updateLocationLabels();
-        const detail = error && error.code === error.PERMISSION_DENIED
-          ? "Enable location to use FixNow. GPS is mandatory before using the app."
-          : "Enable location to use FixNow. We could not get your current GPS location.";
-        if (showGateOnError) setLocationGateState(detail, false);
-        reject(error || new Error("Location unavailable"));
-      },
-      {enableHighAccuracy: true, timeout: 12000, maximumAge: 0}
-    );
-  });
-  return APP.locationPromise;
-}
-
-function bootIntoApp() {
-  if (!APP.user || !APP.profile) return;
-  ensureAppLocation({forceRefresh: true, showGateOnError: true})
-    .then(() => {
-      APP.profile.role === "customer" ? renderCustomerHome() : renderTechHome();
-    })
-    .catch(() => {});
-}
-
-function retryLocationAccess() {
-  bootIntoApp();
-}
-
-function showJobAlert() {
-  const banner = document.getElementById("job-alert-banner");
-  banner.classList.add("show");
-  clearTimeout(APP.jobAlertTimer);
-  APP.jobAlertTimer = setTimeout(() => banner.classList.remove("show"), 5000);
-  try {
-    if (navigator.vibrate) navigator.vibrate([120, 60, 120]);
-  } catch (e) {}
-  try {
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    if (AudioCtx) {
-      const ctx = new AudioCtx();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.value = 880;
-      gain.gain.value = 0.0001;
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      gain.gain.exponentialRampToValueAtTime(0.08, ctx.currentTime + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.18);
-      osc.stop(ctx.currentTime + 0.2);
-    }
-  } catch (e) {}
-}
-
-function focusTechnicianJobs() {
-  document.getElementById("job-alert-banner").classList.remove("show");
-  show("screen-tech-home");
-  const list = document.getElementById("tech-jobs-list");
-  if (list) list.scrollTop = 0;
-}
-
+// ══════════════════════════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════════════════════════
 auth.onAuthStateChanged(async user => {
-  if (!user) {
-    cleanUp();
-    APP.user = null;
-    APP.profile = null;
-    APP.locationReady = false;
-    APP.locationLoading = false;
-    APP.locationPromise = null;
-    APP.lat = null;
-    APP.lng = null;
-    show("screen-splash");
-    return;
-  }
-  APP.user = user;
-  try {
-    const snap = await db.collection("users").doc(user.uid).get();
-    if (!snap.exists) {
-      show("screen-role");
-      return;
+  if (user) {
+    APP.user = user;
+    try {
+      const snap = await db.collection('users').doc(user.uid).get();
+      if (snap.exists) {
+        APP.profile = snap.data();
+        APP._pendingGPSAction = () => {
+          APP.profile.role === 'customer' ? renderCustomerHome() : renderTechHome();
+        };
+        captureGPS();
+      } else {
+        // New user — show role selection, then profile setup will write to 'users' collection
+        show('screen-role');
+      }
+    } catch(e) {
+      console.error('Firestore read error on login:', e);
+      if (e.code === 'permission-denied') {
+        toast('Firestore permission denied. Check your security rules for the "users" collection.', 'error');
+        // Still let the user proceed — treat as new user since we can't read their profile
+        show('screen-role');
+      } else {
+        toast('Error loading profile: ' + e.message, 'error');
+        show('screen-role');
+      }
     }
-    APP.profile = snap.data();
-    APP.isOnline = APP.profile.isOnline !== false;
-    bootIntoApp();
-  } catch (e) {
-    console.error("Firestore read error on login:", e);
-    toast("Error loading profile. Please try again.", "error");
-    show("screen-role");
+  } else {
+    APP.user = null; APP.profile = null;
+    show('screen-splash');
   }
 });
 
 function goToLogin(role) {
   APP.selectedRole = role;
-  show("screen-login");
-  document.getElementById("login-subtitle").textContent = role === "customer" ? "Login to post repair jobs" : "Login to find jobs & earn";
+  show('screen-login');
+  document.getElementById('login-subtitle').textContent =
+    role === 'customer' ? 'Login to post repair jobs' : 'Login to find jobs & earn';
 }
 
 function sendOTP() {
-  const phone = document.getElementById("phone-input").value.trim();
-  const err = document.getElementById("login-error");
-  err.textContent = "";
-  if (phone.length !== 10 || isNaN(phone)) {
-    err.textContent = "Enter valid 10-digit number";
-    return;
-  }
-  const btn = document.getElementById("otp-send-btn");
-  btn.textContent = "Sending...";
-  btn.disabled = true;
+  const phone = document.getElementById('phone-input').value.trim();
+  const err   = document.getElementById('login-error');
+  err.textContent = '';
+  if (phone.length !== 10 || isNaN(phone)) { err.textContent='Enter valid 10-digit number'; return; }
+  const btn = document.getElementById('otp-send-btn');
+  btn.textContent = 'Sending...'; btn.disabled = true;
+
+  // Always create a fresh reCAPTCHA verifier to avoid stale state
   try {
     if (window.recapV) {
       window.recapV.clear();
       window.recapV = null;
     }
-  } catch (e) {
-    window.recapV = null;
-  }
+  } catch(e) { window.recapV = null; }
+
   try {
-    window.recapV = new firebase.auth.RecaptchaVerifier("recaptcha-container", {
-      size: "invisible",
-      callback: function() {},
-      "expired-callback": function() { window.recapV = null; }
+    window.recapV = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+      size: 'invisible',
+      callback: function() { console.log('reCAPTCHA solved'); },
+      'expired-callback': function() { console.log('reCAPTCHA expired'); window.recapV = null; }
     });
-  } catch (e) {
-    err.textContent = "Error initializing verification. Please refresh the page.";
-    btn.textContent = "Send OTP →";
-    btn.disabled = false;
+  } catch(e) {
+    console.error('reCAPTCHA init error:', e);
+    err.textContent = 'Error initializing verification. Please refresh the page.';
+    btn.textContent = 'Send OTP →'; btn.disabled = false;
     return;
   }
-  auth.signInWithPhoneNumber("+91" + phone, window.recapV)
+
+  auth.signInWithPhoneNumber('+91'+phone, window.recapV)
     .then(result => {
       APP.confirmResult = result;
-      document.getElementById("login-step1").style.display = "none";
-      document.getElementById("login-step2").style.display = "block";
-      document.getElementById("phone-display").textContent = "+91 " + phone;
+      document.getElementById('login-step1').style.display = 'none';
+      document.getElementById('login-step2').style.display = 'block';
+      document.getElementById('phone-display').textContent = '+91 '+phone;
+      btn.textContent = 'Send OTP →'; btn.disabled = false;
     })
     .catch(e => {
-      console.error("signInWithPhoneNumber error:", e);
-      err.textContent = "Failed to send OTP. Please try again.";
-    })
-    .finally(() => {
-      btn.textContent = "Send OTP →";
-      btn.disabled = false;
+      console.error('signInWithPhoneNumber error:', e);
+      if (e.code === 'auth/too-many-requests') {
+        err.textContent = 'Too many attempts. Please wait a few minutes.';
+      } else if (e.code === 'auth/invalid-phone-number') {
+        err.textContent = 'Invalid phone number format.';
+      } else if (e.code === 'auth/quota-exceeded') {
+        err.textContent = 'SMS quota exceeded. Try again later.';
+      } else {
+        err.textContent = 'Failed to send OTP: ' + (e.message || 'Try again.');
+      }
+      btn.textContent = 'Send OTP →'; btn.disabled = false;
+      try { window.recapV.clear(); } catch(ex) {}
+      window.recapV = null;
     });
 }
 
 function verifyOTP() {
-  const otp = document.getElementById("otp-input").value.trim();
-  const err = document.getElementById("login-error2");
-  err.textContent = "";
-  if (otp.length !== 6) {
-    err.textContent = "Enter the 6-digit OTP";
-    return;
-  }
+  const otp = document.getElementById('otp-input').value.trim();
+  const err = document.getElementById('login-error2');
+  err.textContent = '';
+  if (otp.length !== 6) { err.textContent='Enter the 6-digit OTP'; return; }
   if (!APP.confirmResult) {
-    err.textContent = "Session expired. Please resend OTP.";
+    err.textContent = 'Session expired. Please go back and resend OTP.';
     return;
   }
-  const btn = document.getElementById("otp-verify-btn");
-  btn.textContent = "Verifying...";
-  btn.disabled = true;
+  const btn = document.getElementById('otp-verify-btn');
+  btn.textContent = 'Verifying...'; btn.disabled = true;
   APP.confirmResult.confirm(otp)
-    .then(() => {})
+    .then(() => { btn.textContent='Verify →'; btn.disabled=false; })
     .catch(e => {
-      console.error("OTP verify error:", e);
-      err.textContent = "Verification failed. Please check the OTP.";
-    })
-    .finally(() => {
-      btn.textContent = "Verify →";
-      btn.disabled = false;
+      console.error('OTP verify error:', e);
+      if (e.code === 'auth/code-expired') {
+        err.textContent = 'OTP expired. Please resend.';
+      } else if (e.code === 'auth/invalid-verification-code') {
+        err.textContent = 'Invalid OTP. Please check and try again.';
+      } else {
+        err.textContent = 'Verification failed: ' + (e.message || 'Try again.');
+      }
+      btn.textContent='Verify →'; btn.disabled=false;
     });
 }
 
 function resendOTP() {
-  document.getElementById("login-step1").style.display = "block";
-  document.getElementById("login-step2").style.display = "none";
+  document.getElementById('login-step1').style.display = 'block';
+  document.getElementById('login-step2').style.display = 'none';
   window.recapV = null;
 }
 
 function selectRole(role) {
   APP.selectedRole = role;
-  show("screen-profile");
-  document.getElementById("profile-role-label").textContent = role === "customer" ? "🏠 Setting up Customer Profile" : "🔧 Setting up Technician Profile";
-  const section = document.getElementById("skills-section");
-  section.style.display = role === "technician" ? "block" : "none";
-  if (role === "technician") {
-    document.getElementById("skill-chips-container").innerHTML = CATS.map(c => `<div class="skill-chip" data-id="${c.id}" onclick="this.classList.toggle('selected')">${c.icon} ${c.label}</div>`).join("");
+  show('screen-profile');
+  document.getElementById('profile-role-label').textContent =
+    role==='customer' ? '🏠 Setting up Customer Profile' : '🔧 Setting up Technician Profile';
+  const ss = document.getElementById('skills-section');
+  ss.style.display = role==='technician' ? 'block' : 'none';
+  // Render skill chips
+  if (role==='technician') {
+    document.getElementById('skill-chips-container').innerHTML =
+      CATS.map(c=>`<div class="skill-chip" data-id="${c.id}" onclick="this.classList.toggle('selected')">${c.icon} ${c.label}</div>`).join('');
   }
 }
 
 function saveProfile() {
-  const name = document.getElementById("profile-name").value.trim();
-  if (!name) {
-    toast("Please enter your name", "error");
-    return;
-  }
-  const role = APP.selectedRole || "customer";
-  const skills = Array.from(document.querySelectorAll(".skill-chip.selected")).map(c => c.dataset.id);
-  const btn = document.getElementById("profile-save-btn");
-  btn.textContent = "Saving...";
-  btn.disabled = true;
+  const name = document.getElementById('profile-name').value.trim();
+  if (!name) { toast('Please enter your name','error'); return; }
+  const btn = document.getElementById('profile-save-btn');
+  btn.textContent = 'Saving...'; btn.disabled = true;
+  const role = APP.selectedRole || 'customer';
+  const skills = Array.from(document.querySelectorAll('.skill-chip.selected')).map(c=>c.dataset.id);
   const data = {
-    uid: APP.user.uid,
-    phone: APP.user.phoneNumber || "",
-    name,
-    role,
-    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-    rating: 0,
-    totalRatings: 0,
-    totalJobs: 0,
-    isVerified: false,
-    location: null,
-    ...(role === "technician" && {skills, isOnline: true, totalEarnings: 0})
+    uid: APP.user.uid, phone: APP.user.phoneNumber||'',
+    name, role, createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    rating:0, totalRatings:0, totalJobs:0, isVerified:false,
+    ...(role==='technician' && {skills, isOnline:true, totalEarnings:0})
   };
-  db.collection("users").doc(APP.user.uid).set(data, {merge: true})
+  db.collection('users').doc(APP.user.uid).set(data)
     .then(() => {
-      APP.profile = {...data};
-      toast(`Welcome to FixNow, ${name}!`, "success");
-      bootIntoApp();
+      APP.profile = data;
+      toast('Welcome to FixNow, '+name+'! 🎉','success');
+      APP._pendingGPSAction = () => {
+        role==='customer' ? renderCustomerHome() : renderTechHome();
+      };
+      captureGPS();
     })
-    .catch(e => {
-      console.error("Profile save error:", e);
-      toast("Error saving profile", "error");
-    })
-    .finally(() => {
-      btn.textContent = "Get Started →";
-      btn.disabled = false;
-    });
+    .catch(e => { toast('Error saving profile','error'); btn.textContent='Get Started →'; btn.disabled=false; });
 }
 
 function logout() {
   cleanUp();
-  document.getElementById("job-alert-banner").classList.remove("show");
   auth.signOut();
 }
 
+// ══════════════════════════════════════════════════════════════
+// CUSTOMER HOME
+// ══════════════════════════════════════════════════════════════
 function renderCustomerHome() {
-  cleanUp();
-  show("screen-customer-home");
-  document.getElementById("cust-greeting").textContent = "Hey " + APP.profile.name + " 👋";
-  updateLocationLabels();
-  document.getElementById("cat-grid").innerHTML = CATS.map(c => `
+  show('screen-customer-home');
+  document.getElementById('cust-greeting').textContent = 'Hey '+APP.profile.name+' 👋';
+  // Render category grid
+  document.getElementById('cat-grid').innerHTML = CATS.map(c=>`
     <div onclick="openCategory('${c.id}')" style="display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer">
       <div style="width:60px;height:60px;border-radius:16px;background:white;display:flex;align-items:center;justify-content:center;font-size:26px;border:1.5px solid var(--border);box-shadow:0 2px 12px rgba(14,12,10,0.06)">${c.icon}</div>
       <div style="font-size:11px;font-weight:600;color:var(--mid);text-align:center;line-height:1.3">${c.label}</div>
-    </div>`).join("");
-  const list = document.getElementById("my-jobs-list");
-  list.innerHTML = renderLoadingCard("Loading your jobs...");
-  const unsub = db.collection("jobs")
-    .where("customerId", "==", APP.user.uid)
-    .orderBy("createdAt", "desc")
-    .onSnapshot(snapshot => {
-      const jobs = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
-      if (!jobs.length) {
-        list.innerHTML = renderEmptyCard("🧰", "No jobs yet", "Post your first job and technicians will start responding in real time.");
-        return;
-      }
-      list.innerHTML = jobs.map(job => {
-        const cat = CATS.find(c => c.id === job.category);
-        const badge = job.status === "open" ? `${job.bidCount || 0} Bids` : job.status === "in_progress" ? "In Progress" : "Done";
-        return `<div class="job-card" onclick="window['j_${job.id}']()">
+    </div>`).join('');
+  // Listen to customer jobs
+  cleanUp();
+  document.getElementById('my-jobs-list').innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted)"><div class="spinner spinner-dark"></div> Loading your jobs...</div>';
+  const unsub = db.collection('jobs')
+    .where('customerId','==',APP.user.uid)
+    .orderBy('createdAt','desc')
+    .onSnapshot(snap => {
+      const jobs = snap.docs.map(d=>({id:d.id,...d.data()}));
+      const el = document.getElementById('my-jobs-list');
+      if (!jobs.length) { el.innerHTML='<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px">No jobs yet. Post your first job above!</div>'; return; }
+      el.innerHTML = jobs.map(j=>{
+        const cat = CATS.find(c=>c.id===j.category);
+        const badge = j.status==='open'?`${j.bidCount||0} Bids`:j.status==='in_progress'?'In Progress':'Done';
+        return `<div class="job-card" onclick="j_${j.id}()">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-            <span class="cat-tag">${cat?.icon || "🔧"} ${escapeHtml(cat?.label || job.category || "General")}</span>
-            <span class="status-badge ${escapeHtml(job.status || "open")}">${escapeHtml(badge)}</span>
+            <span class="cat-tag">${cat?.icon||'🔧'} ${cat?.label||j.category}</span>
+            <span class="status-badge ${j.status}">${badge}</span>
           </div>
-          <div style="font-weight:700;color:var(--dark);margin-bottom:4px;font-family:'Syne',sans-serif">${escapeHtml(job.title)}</div>
-          <div style="font-size:12px;color:var(--muted)">📍 ${escapeHtml(job.location?.address || "Shared via GPS")} · 🕐 ${escapeHtml(job.urgency || "")}</div>
+          <div style="font-weight:700;color:var(--dark);margin-bottom:4px;font-family:'Syne',sans-serif">${j.title}</div>
+          <div style="font-size:12px;color:var(--muted)">📍 ${j.location?.address||''} · 🕐 ${j.urgency}</div>
         </div>`;
-      }).join("");
-      jobs.forEach(job => {
-        window["j_" + job.id] = () => job.status === "open"
-          ? openJobBids(job.id)
-          : openChat(job.id, job.technicianId || "", job.technicianName || "Technician");
+      }).join('');
+      // Create click handlers
+      jobs.forEach(j => {
+        window['j_'+j.id] = () => j.status==='open' ? openJobBids(j.id) : openChat(j.id, j.technicianId||'', 'Technician');
       });
-    }, error => {
-      console.error("Customer jobs error:", error);
-      list.innerHTML = renderEmptyCard("⚠️", "Could not load jobs", "Please try again.", '<button class="btn-ghost" style="max-width:240px;margin:0 auto" onclick="renderCustomerHome()">Retry</button>');
     });
   APP.unsubscribers.push(unsub);
 }
 
 function openCategory(catId) {
-  APP.selectedCat = CATS.find(c => c.id === catId);
-  show("screen-subcategory");
-  document.getElementById("subcat-title").textContent = APP.selectedCat.icon + " " + APP.selectedCat.label;
-  document.getElementById("subcat-list").innerHTML = APP.selectedCat.subs.map(sub => `
-    <div class="subcat-row" onclick="openPostJob('${sub.replace(/'/g, "\\'")}')">
-      <div class="subcat-icon">${APP.selectedCat.icon}</div>
-      <div><div style="font-weight:700;color:var(--dark);font-family:'Syne',sans-serif">${escapeHtml(sub)}</div></div>
-      <div style="margin-left:auto;color:var(--muted);font-size:18px">→</div>
-    </div>`).join("") + `
-    <div class="subcat-row" onclick="openPostJob('Other')">
+  APP.selectedCat = CATS.find(c=>c.id===catId);
+  show('screen-subcategory');
+  document.getElementById('subcat-title').textContent = APP.selectedCat.icon+' '+APP.selectedCat.label;
+  document.getElementById('subcat-list').innerHTML =
+    APP.selectedCat.subs.map(s=>`
+      <div class="subcat-row" onclick="openPostJob('${s.replace(/'/g,"\\'")}')">
+        <div class="subcat-icon">${APP.selectedCat.icon}</div>
+        <div><div style="font-weight:700;color:var(--dark);font-family:'Syne',sans-serif">${s}</div></div>
+        <div style="margin-left:auto;color:var(--muted);font-size:18px">→</div>
+      </div>`).join('') +
+    `<div class="subcat-row" onclick="openPostJob('Other')">
       <div class="subcat-icon">🔧</div>
       <div><div style="font-weight:700;color:var(--dark)">Other / Not sure</div><div style="font-size:12px;color:var(--muted);margin-top:2px">Describe your issue</div></div>
       <div style="margin-left:auto;color:var(--muted);font-size:18px">→</div>
@@ -998,787 +841,840 @@ function openCategory(catId) {
 
 function openPostJob(sub) {
   APP.selectedSub = sub;
-  show("screen-post-job");
-  document.getElementById("postjob-cat-label").textContent = `${APP.selectedCat.icon} ${APP.selectedCat.label} › ${sub}`;
-  document.getElementById("job-address").value = APP.profile.defaultAddress || "";
-  detectLocation(true);
+  show('screen-post-job');
+  document.getElementById('postjob-cat-label').textContent = APP.selectedCat.icon+' '+APP.selectedCat.label+' › '+sub;
+  detectLocation();
 }
 
-function detectLocation(silent) {
-  const gpsStatus = document.getElementById("gps-status");
-  if (gpsStatus) gpsStatus.textContent = "📡 Checking live GPS...";
-  ensureAppLocation({forceRefresh: true, showGateOnError: !silent})
-    .then(() => {
-      if (gpsStatus) gpsStatus.textContent = `✅ GPS ready: ${APP.lat.toFixed(3)}, ${APP.lng.toFixed(3)}`;
-    })
-    .catch(() => {
-      if (gpsStatus) gpsStatus.textContent = "Enable location to use FixNow";
-      if (!silent) toast("Enable location to use FixNow", "error");
-    });
+function detectLocation() {
+  // Use pre-captured GPS from mandatory gate
+  if (APP.lat && APP.lng) {
+    document.getElementById('gps-status').textContent = '✅ GPS detected: '+APP.lat.toFixed(3)+', '+APP.lng.toFixed(3);
+    if (!document.getElementById('job-address').value) {
+      document.getElementById('job-address').placeholder = 'GPS detected — add street address for clarity';
+    }
+    return;
+  }
+  if (!navigator.geolocation) { document.getElementById('gps-status').textContent = '📍 GPS unavailable — please type your address'; return; }
+  document.getElementById('gps-status').textContent = '📡 Detecting location...';
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      APP.lat = pos.coords.latitude; APP.lng = pos.coords.longitude;
+      document.getElementById('gps-status').textContent = '✅ GPS detected: '+APP.lat.toFixed(3)+', '+APP.lng.toFixed(3);
+      if (!document.getElementById('job-address').value) {
+        document.getElementById('job-address').placeholder = 'GPS detected — add street address for clarity';
+      }
+    },
+    () => { document.getElementById('gps-status').textContent = '📍 GPS unavailable — please type your address'; }
+  );
 }
 
-function selectUrgency(value) {
-  APP.urgency = value;
-  ["urgent", "today", "flexible"].forEach(v => document.getElementById("urg-" + v).classList.toggle("selected", v === value));
+function selectUrgency(val) {
+  APP.urgency = val;
+  ['urgent','today','flexible'].forEach(v => {
+    document.getElementById('urg-'+v).classList.toggle('selected', v===val);
+  });
 }
 
 function postJob() {
-  const title = document.getElementById("job-title").value.trim();
-  const description = document.getElementById("job-desc").value.trim();
-  const address = document.getElementById("job-address").value.trim() || APP.profile.defaultAddress || "Shared via GPS";
-  if (!title) return toast("Please enter what needs fixing", "error");
-  if (!description) return toast("Please describe the problem", "error");
-  if (!APP.locationReady || !hasCoords({lat: APP.lat, lng: APP.lng})) {
-    toast("Enable location to use FixNow", "error");
-    setLocationGateState("Enable location to use FixNow. GPS is mandatory before posting a job.", false);
-    return;
-  }
-  const btn = document.getElementById("post-job-btn");
-  btn.textContent = "Posting...";
-  btn.disabled = true;
-  db.collection("jobs").add({
-    customerId: APP.user.uid,
-    customerName: APP.profile.name,
-    customerPhone: APP.profile.phone || "",
-    category: APP.selectedCat?.id || "general",
-    subcategory: APP.selectedSub || "",
-    title,
-    description,
-    urgency: APP.urgency,
-    status: "open",
-    imageUrls: [],
-    location: {address, lat: APP.lat, lng: APP.lng},
-    bidCount: 0,
-    technicianId: null,
+  const title = document.getElementById('job-title').value.trim();
+  const desc  = document.getElementById('job-desc').value.trim();
+  const addr  = document.getElementById('job-address').value.trim();
+  if (!title) { toast('Please enter what needs fixing','error'); return; }
+  if (!desc)  { toast('Please describe the problem','error'); return; }
+  if (!addr && !APP.lat)  { toast('Please enter your address or detect GPS','error'); return; }
+  const btn = document.getElementById('post-job-btn');
+  btn.textContent = 'Posting...'; btn.disabled = true;
+  db.collection('jobs').add({
+    customerId: APP.user.uid, customerName: APP.profile.name, customerPhone: APP.profile.phone||'',
+    category: APP.selectedCat?.id||'general', subcategory: APP.selectedSub||'',
+    title, description: desc, urgency: APP.urgency, status: 'open', imageUrls:[],
+    location: {address: addr||'Location via GPS', lat: APP.lat||null, lng: APP.lng||null},
+    bidCount:0, technicianId:null,
     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
   }).then(ref => {
-    document.getElementById("job-title").value = "";
-    document.getElementById("job-desc").value = "";
-    document.getElementById("job-address").value = APP.profile.defaultAddress || "";
-    toast("Job posted! Technicians nearby are being alerted.", "success");
+    document.getElementById('job-title').value='';
+    document.getElementById('job-desc').value='';
+    document.getElementById('job-address').value='';
+    btn.textContent='🚀 Post Job'; btn.disabled=false;
+    toast('Job posted! Technicians are being alerted 🚀','success');
     openWaiting(ref.id);
   }).catch(e => {
-    console.error("Post job error:", e);
-    toast("Failed to post job. Please try again.", "error");
-  }).finally(() => {
-    btn.textContent = "🚀 Post Job - Get Quotes Fast";
-    btn.disabled = false;
+    toast('Failed to post job. Check connection.','error');
+    btn.textContent='🚀 Post Job'; btn.disabled=false;
+    console.error(e);
   });
 }
 
+// ══════════════════════════════════════════════════════════════
+// WAITING SCREEN
+// ══════════════════════════════════════════════════════════════
 function openWaiting(jobId) {
   APP.currentJobId = jobId;
-  show("screen-waiting");
-  document.getElementById("waiting-bid-count").textContent = "0";
-  document.getElementById("waiting-preview").style.display = "none";
+  show('screen-waiting');
+  document.getElementById('waiting-bid-count').textContent = '0';
+  document.getElementById('waiting-preview').style.display = 'none';
   cleanUp();
-  const u1 = db.collection("jobs").doc(jobId).onSnapshot(snapshot => {
-    if (snapshot.exists) document.getElementById("waiting-bid-count").textContent = String(snapshot.data().bidCount || 0);
+  const u1 = db.collection('jobs').doc(jobId).onSnapshot(snap => {
+    if (snap.exists) document.getElementById('waiting-bid-count').textContent = snap.data().bidCount||0;
   });
-  const u2 = db.collection("bids").where("jobId", "==", jobId).onSnapshot(snapshot => {
-    if (snapshot.empty) return;
-    const bid = snapshot.docs[0].data();
-    const preview = document.getElementById("waiting-preview");
-    preview.style.display = "block";
-    preview.innerHTML = `<div style="font-size:11px;font-weight:700;color:var(--or);margin-bottom:8px;letter-spacing:0.5px">⚡ NEW BID!</div>
-      <div style="font-weight:700;color:var(--dark)">${escapeHtml(bid.technicianName)}</div>
-      <div style="font-size:13px;color:var(--muted);margin-top:3px">₹${escapeHtml(bid.price)} · ${escapeHtml(bid.estimatedTime)}</div>
+  const u2 = db.collection('bids').where('jobId','==',jobId).onSnapshot(snap => {
+    if (snap.empty) return;
+    const bid = snap.docs[0].data();
+    const prev = document.getElementById('waiting-preview');
+    prev.style.display='block';
+    prev.innerHTML=`<div style="font-size:11px;font-weight:700;color:var(--or);margin-bottom:8px;letter-spacing:0.5px">⚡ NEW BID!</div>
+      <div style="font-weight:700;color:var(--dark)">${bid.technicianName}</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:3px">₹${bid.price} · ${bid.estimatedTime}</div>
       <button onclick="openJobBids('${jobId}')" style="margin-top:10px;background:var(--grad);color:white;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;width:100%">View Bids →</button>`;
   });
   APP.unsubscribers.push(u1, u2);
 }
 
+// ══════════════════════════════════════════════════════════════
+// BIDS
+// ══════════════════════════════════════════════════════════════
 function openJobBids(jobId) {
   APP.currentJobId = jobId;
+  show('screen-bids');
+  document.getElementById('bids-list').innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted)">Loading...</div>';
   cleanUp();
-  show("screen-bids");
-  const list = document.getElementById("bids-list");
-  list.innerHTML = renderLoadingCard("Loading bids...");
-  const unsub = db.collection("bids").where("jobId", "==", jobId).orderBy("createdAt", "asc")
-    .onSnapshot(snapshot => {
-      const bids = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
+  const unsub = db.collection('bids').where('jobId','==',jobId)
+    .orderBy('createdAt','asc')
+    .onSnapshot(snap => {
+      const bids = snap.docs.map(d=>({id:d.id,...d.data()}));
+      const el = document.getElementById('bids-list');
       if (!bids.length) {
-        list.innerHTML = renderEmptyCard("⏳", "Waiting for technicians", "Bids will appear here in real time.");
+        el.innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--muted)"><div style="font-size:32px;margin-bottom:10px">⏳</div>Waiting for technicians...<br><small>Bids appear in real time!</small></div>';
         return;
       }
-      list.innerHTML = bids.map(bid => `
+      el.innerHTML = bids.map(b=>`
         <div class="bid-card">
           <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:10px">
             <div style="width:44px;height:44px;border-radius:12px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:18px">🔧</div>
             <div style="flex:1">
-              <div style="font-weight:700;color:var(--dark);font-family:'Syne',sans-serif;font-size:16px">${escapeHtml(bid.technicianName)}</div>
-              <div style="font-size:12px;color:var(--muted);margin-top:2px">⭐ ${escapeHtml(bid.technicianRating || "New")} · ${bid.isVerified ? "✅ Verified" : "Unverified"}</div>
+              <div style="font-weight:700;color:var(--dark);font-family:'Syne',sans-serif;font-size:16px">${b.technicianName}</div>
+              <div style="font-size:12px;color:var(--muted);margin-top:2px">⭐ ${b.technicianRating||'New'} · ${b.isVerified?'✅ Verified':'Unverified'}</div>
             </div>
             <div style="background:#FFF0EA;border:1px solid rgba(244,80,10,0.2);border-radius:10px;padding:8px 12px;text-align:center">
-              <div style="font-size:22px;font-weight:800;color:var(--or);font-family:'Syne',sans-serif">₹${escapeHtml(bid.price)}</div>
+              <div style="font-size:22px;font-weight:800;color:var(--or);font-family:'Syne',sans-serif">₹${b.price}</div>
               <div style="font-size:10px;color:var(--muted)">Estimated</div>
             </div>
           </div>
-          ${bid.message ? `<div style="background:var(--light);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--mid);line-height:1.5;margin-bottom:10px">"${escapeHtml(bid.message)}"</div>` : ""}
-          ${bid.sparesRequired ? `<div style="margin-bottom:8px"><span style="background:#EBF1FB;color:#1A56A0;font-size:11px;font-weight:600;padding:3px 9px;border-radius:6px">🧰 ${escapeHtml(bid.sparesRequired)}</span></div>` : ""}
-          <div style="font-size:12px;color:var(--muted);margin-bottom:10px">⏱️ ${escapeHtml(bid.estimatedTime)}</div>
-          <button onclick="acceptBid('${jobId}','${bid.id}','${bid.technicianId}','${escapeHtml(bid.technicianName).replace(/'/g, "\\'")}',${Number(bid.price) || 0})" style="width:100%;padding:11px;border-radius:10px;background:var(--grad);color:white;border:none;font-size:14px;font-weight:700;cursor:pointer">✓ Accept & Chat</button>
-        </div>`).join("");
-    }, error => {
-      console.error("Bids error:", error);
-      list.innerHTML = renderEmptyCard("⚠️", "Could not load bids", "Please try again.", `<button class="btn-ghost" style="max-width:240px;margin:0 auto" onclick="openJobBids('${jobId}')">Retry</button>`);
+          ${b.message?`<div style="background:var(--light);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--mid);line-height:1.5;margin-bottom:10px">"${b.message}"</div>`:''}
+          ${b.sparesRequired?`<div style="margin-bottom:8px"><span style="background:#EBF1FB;color:#1A56A0;font-size:11px;font-weight:600;padding:3px 9px;border-radius:6px">🧰 ${b.sparesRequired}</span></div>`:''}
+          <div style="font-size:12px;color:var(--muted);margin-bottom:10px">⏱️ ${b.estimatedTime}</div>
+          <div style="display:flex;gap:8px">
+            <button onclick="acceptBid('${jobId}','${b.id}','${b.technicianId}','${b.technicianName.replace(/'/g,"\\'")}',${b.price})"
+              style="flex:1;padding:11px;border-radius:10px;background:var(--grad);color:white;border:none;font-size:14px;font-weight:700;cursor:pointer">✓ Accept & Chat</button>
+          </div>
+        </div>`).join('');
     });
   APP.unsubscribers.push(unsub);
 }
 
 function acceptBid(jobId, bidId, techId, techName, price) {
-  Promise.all([db.collection("bids").doc(bidId).get(), db.collection("jobs").doc(jobId).get()]).then(([bidSnap, jobSnap]) => {
-    const techPhone = bidSnap.exists ? (bidSnap.data().technicianPhone || "") : "";
-    const jobData = jobSnap.exists ? jobSnap.data() : {};
-    return db.collection("bids").doc(bidId).update({status: "accepted"})
-      .then(() => db.collection("jobs").doc(jobId).update({
-        status: "in_progress",
-        technicianId: techId,
-        technicianName: techName,
-        technicianPhone: techPhone,
-        agreedPrice: price,
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  // Get technician phone from the bid doc
+  db.collection('bids').doc(bidId).get().then(bidSnap => {
+    const techPhone = bidSnap.exists ? (bidSnap.data().technicianPhone || '') : '';
+    return db.collection('bids').doc(bidId).update({status:'accepted'})
+      .then(() => db.collection('jobs').doc(jobId).update({
+        status:'in_progress', technicianId:techId, technicianName:techName,
+        technicianPhone:techPhone, agreedPrice:price,
+        updatedAt:firebase.firestore.FieldValue.serverTimestamp()
       }))
-      .then(() => rtdb.ref("chats/" + jobId).set({
-        jobId,
-        jobTitle: jobData.title || "",
-        jobCategory: jobData.category || "",
-        jobStatus: "in_progress",
-        customerId: APP.user.uid,
-        customerName: APP.profile.name,
-        customerPhone: APP.profile.phone || "",
-        technicianId: techId,
-        technicianName: techName,
-        technicianPhone: techPhone,
-        participantIds: {[APP.user.uid]: true, [techId]: true},
-        createdAt: Date.now(),
-        lastMessage: "",
-        lastMessageAt: Date.now()
+      .then(() => rtdb.ref('chats/'+jobId).set({
+        jobId, customerId:APP.user.uid, customerName:APP.profile.name,
+        customerPhone:APP.profile.phone||'',
+        technicianId:techId, technicianName:techName, technicianPhone:techPhone,
+        participantIds:{[APP.user.uid]:true,[techId]:true},
+        createdAt:Date.now(), lastMessage:'', lastMessageAt:Date.now()
       }))
-      .then(() => rtdb.ref("chats/" + jobId + "/messages").push({
-        senderId: "system",
-        senderName: "FixNow",
-        senderRole: "system",
-        text: `✅ ${APP.profile.name} accepted ${techName}'s bid of ₹${price}. Chat is now open!`,
-        type: "system",
-        timestamp: Date.now()
+      .then(() => rtdb.ref('chats/'+jobId+'/messages').push({
+        senderId:'system', senderName:'FixNow', senderRole:'system',
+        text:'\u2705 '+APP.profile.name+' accepted '+techName+"'s bid of \u20b9"+price+'. Chat is now open!',
+        type:'system', timestamp:Date.now()
       }))
       .then(() => openChat(jobId, techId, techName));
-  }).catch(e => {
-    console.error("Accept bid error:", e);
-    toast("Error accepting bid", "error");
-  });
+  }).catch(e => { toast('Error accepting bid','error'); console.error(e); });
 }
 
+// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+// CHAT
+// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 function openChat(chatId, otherId, otherName) {
-  cleanUp();
-  APP.chatId = chatId;
-  APP.otherId = otherId;
-  APP.otherName = otherName;
-  APP.currentJob = null;
-  show("screen-chat");
-  document.getElementById("chat-other-name").textContent = otherName || "...";
-  document.getElementById("chat-job-summary").textContent = "";
-  document.getElementById("chat-pay-btn").style.display = "none";
-  document.getElementById("complete-btn").style.display = "none";
-  document.getElementById("chat-messages").innerHTML = renderLoadingCard("Loading chat...");
-  rtdb.ref("chats/" + chatId).once("value").then(snapshot => {
-    const chat = snapshot.val() || {};
-    const resolvedName = APP.profile.role === "customer" ? (chat.technicianName || otherName || "Technician") : (chat.customerName || otherName || "Customer");
-    document.getElementById("chat-other-name").textContent = resolvedName;
-    APP.otherId = APP.profile.role === "customer" ? (chat.technicianId || otherId) : (chat.customerId || otherId);
-  });
-  db.collection("jobs").doc(chatId).get().then(snapshot => {
-    if (!snapshot.exists) return;
-    const job = {id: chatId, ...snapshot.data()};
-    APP.currentJob = job;
-    const statusLabel = job.status === "open" ? "Open" : job.status === "in_progress" ? "In Progress" : job.status === "completed_by_tech" ? "Awaiting Confirm" : "Completed";
-    document.getElementById("chat-job-summary").textContent = `${job.category || ""} · ₹${job.agreedPrice || "TBD"} · ${statusLabel}`;
-    if (APP.profile.role === "customer" && (job.status === "completed_by_tech" || job.status === "in_progress")) document.getElementById("chat-pay-btn").style.display = "block";
-    if (APP.profile.role === "technician" && job.status === "in_progress") document.getElementById("complete-btn").style.display = "block";
-  });
-  const msgRef = rtdb.ref("chats/" + chatId + "/messages");
-  const onValue = snapshot => {
-    const data = snapshot.val();
-    const list = document.getElementById("chat-messages");
-    if (!data) {
-      list.innerHTML = renderEmptyCard("💬", "No messages yet", "Send the first message to get the conversation started.");
-      return;
+  APP.chatId = chatId; APP.otherId = otherId; APP.otherName = otherName;
+  show('screen-chat');
+  document.getElementById('chat-other-name').textContent = otherName||'...';
+  document.getElementById('chat-messages').innerHTML = '';
+  // Hide pay/complete buttons initially
+  document.getElementById('chat-pay-btn').style.display = 'none';
+  document.getElementById('complete-btn').style.display = 'none';
+  // Load job info and set role-based UI
+  db.collection('jobs').doc(chatId).get().then(snap => {
+    if (!snap.exists) return;
+    const j = {id:chatId,...snap.data()};
+    APP.currentJob = j;
+    const statusLabel = j.status==='open'?'Open':j.status==='in_progress'?'In Progress':j.status==='completed_by_tech'?'Awaiting Confirm':'Completed';
+    document.getElementById('chat-job-summary').textContent = (j.category||'')+' \u00b7 \u20b9'+(j.agreedPrice||'TBD')+' \u00b7 '+statusLabel;
+    // Pay button: only for customer when job is completed_by_tech or in_progress
+    if (APP.profile.role === 'customer' && (j.status === 'completed_by_tech' || j.status === 'in_progress')) {
+      document.getElementById('chat-pay-btn').style.display = 'block';
     }
-    const messages = Object.entries(data).map(([id, value]) => ({id, ...value})).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-    list.innerHTML = messages.map(message => {
-      if (message.type === "system" || message.senderId === "system") {
-        const showConfirm = message.type === "job_complete" && APP.profile.role === "customer";
-        return `<div class="system-msg">${escapeHtml(message.text)}${showConfirm ? `<div style="display:flex;gap:8px;justify-content:center;margin-top:10px"><button onclick="confirmJobComplete()" style="background:#2E7D4F;color:white;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer">✅ Confirm & Pay</button></div>` : ""}</div>`;
+    // Complete button: only for technician when job is in_progress
+    if (APP.profile.role === 'technician' && j.status === 'in_progress') {
+      document.getElementById('complete-btn').style.display = 'block';
+    }
+  });
+  // Listen to messages
+  if (APP.chatListener) { try{APP.chatListener()}catch(e){} APP.chatListener=null; }
+  const msgRef = rtdb.ref('chats/'+chatId+'/messages');
+  const handler = msgRef.on('value', snap => {
+    const data = snap.val();
+    if (!data) return;
+    const msgs = Object.entries(data).map(([id,m])=>({id,...m})).sort((a,b)=>a.timestamp-b.timestamp);
+    const el = document.getElementById('chat-messages');
+    el.innerHTML = msgs.map(m => {
+      if (m.type==='system' || m.senderId==='system') {
+        const showConfirm = m.type==='job_complete' && APP.profile.role==='customer';
+        return `<div class="system-msg">${m.text}${showConfirm?
+          `<div style="display:flex;gap:8px;justify-content:center;margin-top:10px">
+            <button onclick="confirmJobComplete()" style="background:#2E7D4F;color:white;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer">\u2705 Confirm & Pay</button>
+           </div>`:''}</div>`;
       }
-      const isMe = message.senderId === APP.user.uid;
-      return `<div class="msg-row ${isMe ? "mine" : ""}">
-        <div class="msg-ava" style="background:${isMe ? "#0E0C0A" : "linear-gradient(135deg,#F4500A,#C93D05)"}">${message.senderRole === "customer" ? "👤" : "🔧"}</div>
+      const isMe = m.senderId === APP.user.uid;
+      return `<div class="msg-row ${isMe?'mine':''}">
+        <div class="msg-ava" style="background:${isMe?'#0E0C0A':'linear-gradient(135deg,#F4500A,#C93D05)'}">${m.senderRole==='customer'?'\ud83d\udc64':'\ud83d\udd27'}</div>
         <div>
-          ${!isMe ? `<div style="font-size:10px;color:var(--muted);margin-bottom:2px;font-weight:600;text-transform:uppercase">${escapeHtml(message.senderName || "")}</div>` : ""}
-          <div class="msg-bubble ${isMe ? "mine" : "theirs"}">${escapeHtml(message.text)}</div>
-          <div style="font-size:10px;color:var(--muted);margin-top:2px;${isMe ? "text-align:right;" : ""}">${formatTime(message.timestamp)}</div>
+          ${!isMe?`<div style="font-size:10px;color:var(--muted);margin-bottom:2px;font-weight:600;text-transform:uppercase">${m.senderName}</div>`:''}
+          <div class="msg-bubble ${isMe?'mine':'theirs'}">${m.text}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px;${isMe?'text-align:right':''}">${new Date(m.timestamp).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</div>
         </div>
       </div>`;
-    }).join("");
-    list.scrollTop = list.scrollHeight;
-  };
-  const onError = error => {
-    console.error("Chat messages error:", error);
-    document.getElementById("chat-messages").innerHTML = renderEmptyCard("⚠️", "Could not load messages", "Please reopen the chat.");
-  };
-  msgRef.on("value", onValue, onError);
-  APP.chatListener = () => msgRef.off("value", onValue);
+    }).join('');
+    el.scrollTop = el.scrollHeight;
+  });
+  APP.chatListener = () => msgRef.off('value', handler);
 }
 
 function sendChatMessage() {
-  const input = document.getElementById("chat-input");
+  const input = document.getElementById('chat-input');
   const text = input.value.trim();
   if (!text || !APP.chatId) return;
-  input.value = "";
-  Promise.all([
-    rtdb.ref("chats/" + APP.chatId + "/messages").push({
-      senderId: APP.user.uid,
-      senderName: APP.profile.name,
-      senderRole: APP.profile.role,
-      text,
-      type: "text",
-      timestamp: Date.now()
-    }),
-    rtdb.ref("chats/" + APP.chatId).update({lastMessage: text, lastMessageAt: Date.now()})
-  ]).catch(error => {
-    console.error("Send message error:", error);
-    toast("Failed to send message", "error");
+  input.value = '';
+  rtdb.ref('chats/'+APP.chatId+'/messages').push({
+    senderId: APP.user.uid, senderName: APP.profile.name,
+    senderRole: APP.profile.role, text, type:'text', timestamp:Date.now()
   });
-}
-
-function callOtherUser() {
-  const job = APP.currentJob;
-  let phone = APP.profile.role === "customer" ? job?.technicianPhone : job?.customerPhone;
-  if (phone) return window.open("tel:" + phone);
-  rtdb.ref("chats/" + APP.chatId).once("value").then(snapshot => {
-    const chat = snapshot.val();
-    if (!chat) return toast("Phone number not available", "error");
-    phone = APP.profile.role === "customer" ? chat.technicianPhone : chat.customerPhone;
-    phone ? window.open("tel:" + phone) : toast("Phone number not available", "error");
-  });
+  rtdb.ref('chats/'+APP.chatId).update({lastMessage:text, lastMessageAt:Date.now()});
 }
 
 function markJobComplete() {
   if (!APP.chatId) return;
-  const btn = document.getElementById("complete-btn");
-  btn.textContent = "Marking...";
-  btn.disabled = true;
-  db.collection("jobs").doc(APP.chatId).update({
-    status: "completed_by_tech",
-    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-  }).then(() => Promise.all([
-    rtdb.ref("chats/" + APP.chatId).update({
-      jobStatus: "completed_by_tech",
-      lastMessage: "Job marked complete",
-      lastMessageAt: Date.now()
-    }),
-    rtdb.ref("chats/" + APP.chatId + "/messages").push({
-      senderId: "system",
-      senderName: "FixNow",
-      senderRole: "system",
-      text: `✅ ${APP.profile.name} marked the job as complete. Customer please confirm and pay.`,
-      type: "job_complete",
-      timestamp: Date.now()
-    })
-  ])).then(() => {
-    btn.style.display = "none";
-    toast("Job marked complete! Waiting for customer.", "success");
-  }).catch(e => {
-    console.error("Mark complete error:", e);
-    toast("Error marking job complete", "error");
-  }).finally(() => {
-    btn.textContent = "✅ Mark Job as Complete";
-    btn.disabled = false;
-  });
+  const btn = document.getElementById('complete-btn');
+  btn.textContent='Marking...'; btn.disabled=true;
+  db.collection('jobs').doc(APP.chatId).update({
+    status:'completed_by_tech',
+    updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+  }).then(() => rtdb.ref('chats/'+APP.chatId+'/messages').push({
+    senderId:'system', senderName:'FixNow', senderRole:'system',
+    text:'✅ '+APP.profile.name+' marked the job as complete. Customer please confirm and pay.',
+    type:'job_complete', timestamp:Date.now()
+  })).then(() => {
+    btn.style.display='none';
+    toast('Job marked complete! Waiting for customer.','success');
+  }).catch(e => { toast('Error','error'); btn.textContent='✅ Mark Job as Complete'; btn.disabled=false; });
 }
 
 function confirmJobComplete() {
-  db.collection("jobs").doc(APP.chatId).update({
-    status: "completed",
-    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-  }).then(() => rtdb.ref("chats/" + APP.chatId).update({
-    jobStatus: "completed",
-    lastMessage: "Job confirmed complete",
-    lastMessageAt: Date.now()
-  })).then(() => {
-    toast("Job confirmed! Please pay.", "success");
-    openPayment();
-  }).catch(error => {
-    console.error("Confirm complete error:", error);
-    toast("Could not confirm job", "error");
-  });
+  db.collection('jobs').doc(APP.chatId).update({
+    status:'completed', updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+  }).then(() => { toast('Job confirmed! Please pay.','success'); openPayment(); });
 }
 
-function goHome() {
-  ensureAppLocation({showGateOnError: true}).then(() => {
-    APP.profile?.role === "customer" ? renderCustomerHome() : renderTechHome();
-  }).catch(() => {});
-}
-
-function openPayment() {
-  show("screen-payment");
-  const job = APP.currentJob;
-  document.getElementById("payment-amount").textContent = "₹" + (job?.agreedPrice || "0");
-  document.getElementById("payment-service").textContent = job?.category || "";
-}
-
-function selectPayMethod(el) {
-  document.querySelectorAll(".pay-method").forEach(node => {
-    node.classList.remove("selected");
-    const dot = node.querySelector("div:last-child");
-    if (dot) {
-      dot.style.background = "";
-      dot.textContent = "";
-    }
-  });
-  el.classList.add("selected");
-  const dot = el.querySelector("div:last-child");
-  if (dot) {
-    dot.style.background = "var(--or)";
-    dot.style.borderColor = "var(--or)";
-    dot.style.color = "white";
-    dot.textContent = "✓";
+function callOtherUser() {
+  const j = APP.currentJob;
+  let phone = null;
+  if (APP.profile.role === 'customer') {
+    phone = j?.technicianPhone;
+  } else {
+    phone = j?.customerPhone;
+  }
+  if (phone) {
+    window.open('tel:'+phone);
+  } else {
+    // Fallback: try RTDB chat metadata
+    rtdb.ref('chats/'+APP.chatId).once('value').then(snap => {
+      const chat = snap.val();
+      if (!chat) { toast('Phone number not available','error'); return; }
+      const p = APP.profile.role === 'customer' ? chat.technicianPhone : chat.customerPhone;
+      p ? window.open('tel:'+p) : toast('Phone number not available','error');
+    });
   }
 }
 
-function processPayment() {
-  const btn = document.getElementById("pay-btn");
-  btn.textContent = "Processing...";
-  btn.disabled = true;
-  const job = APP.currentJob;
-  const price = job?.agreedPrice || 0;
-  db.collection("jobs").doc(APP.chatId).update({
-    status: "completed",
-    actualAmountPaid: price,
-    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-  }).then(() => Promise.all([
-    job?.technicianId ? db.collection("users").doc(job.technicianId).update({
-      totalEarnings: firebase.firestore.FieldValue.increment(price),
-      totalJobs: firebase.firestore.FieldValue.increment(1)
-    }) : Promise.resolve(),
-    rtdb.ref("chats/" + APP.chatId).update({
-      jobStatus: "completed",
-      lastMessage: "Payment confirmed",
-      lastMessageAt: Date.now()
-    })
-  ])).then(() => {
-    show("screen-rating");
-  }).catch(error => {
-    console.error("Payment error:", error);
-    toast("Error processing payment", "error");
-  }).finally(() => {
-    btn.textContent = "🔒 Confirm Payment";
-    btn.disabled = false;
+function goHome() {
+  APP.profile?.role==='customer' ? renderCustomerHome() : renderTechHome();
+}
+
+// ══════════════════════════════════════════════════════════════
+// PAYMENT & RATING
+// ══════════════════════════════════════════════════════════════
+function openPayment() {
+  show('screen-payment');
+  const j = APP.currentJob;
+  document.getElementById('payment-amount').textContent = '₹'+(j?.agreedPrice||'0');
+  document.getElementById('payment-service').textContent = j?.category||'';
+}
+
+function selectPayMethod(el) {
+  document.querySelectorAll('.pay-method').forEach(m => {
+    m.classList.remove('selected');
+    const dot = m.querySelector('div[style*="border-radius:50%"]');
+    if (dot) { dot.style.background=''; dot.textContent=''; }
   });
+  el.classList.add('selected');
+}
+
+function processPayment() {
+  const btn = document.getElementById('pay-btn');
+  btn.textContent='Processing...'; btn.disabled=true;
+  const j = APP.currentJob;
+  const price = j?.agreedPrice || 0;
+  db.collection('jobs').doc(APP.chatId).update({
+    status:'completed', actualAmountPaid: price,
+    updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+  }).then(() => {
+    // Update technician earnings
+    const techId = j?.technicianId;
+    if (techId) {
+      return db.collection('users').doc(techId).update({
+        totalEarnings: firebase.firestore.FieldValue.increment(price),
+        totalJobs: firebase.firestore.FieldValue.increment(1)
+      });
+    }
+  }).then(() => { show('screen-rating'); })
+  .catch(() => { toast('Error processing payment','error'); })
+  .finally(() => { btn.textContent='🔒 Confirm Payment'; btn.disabled=false; });
 }
 
 let _ratingScore = 5;
 function rateStar(n) {
   _ratingScore = n;
-  document.querySelectorAll(".star-btn").forEach((star, index) => {
-    star.style.opacity = index < n ? "1" : "0.35";
-    star.style.filter = index < n ? "none" : "grayscale(1)";
+  document.querySelectorAll('.star-btn').forEach((s,i) => {
+    s.style.opacity  = i<n?'1':'0.35';
+    s.style.filter   = i<n?'none':'grayscale(1)';
   });
 }
 
 function submitRating() {
-  const tags = Array.from(document.querySelectorAll(".rtag.selected")).map(tag => tag.textContent);
-  const comment = document.getElementById("rating-comment").value;
-  const btn = document.getElementById("rating-submit-btn");
-  btn.textContent = "Submitting...";
-  btn.disabled = true;
-  db.collection("ratings").add({
-    jobId: APP.chatId,
-    fromId: APP.user.uid,
-    fromRole: APP.profile.role,
-    toId: APP.otherId,
-    score: _ratingScore,
-    tags,
-    comment,
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  const tags    = Array.from(document.querySelectorAll('.rtag.selected')).map(t=>t.textContent);
+  const comment = document.getElementById('rating-comment').value;
+  const btn     = document.getElementById('rating-submit-btn');
+  btn.textContent='Submitting...'; btn.disabled=true;
+  db.collection('ratings').add({
+    jobId:APP.chatId, fromId:APP.user.uid, fromRole:APP.profile.role,
+    toId:APP.otherId, score:_ratingScore, tags, comment,
+    createdAt:firebase.firestore.FieldValue.serverTimestamp()
   }).then(() => {
-    if (!APP.otherId) return null;
-    return db.collection("users").doc(APP.otherId).get().then(snapshot => {
-      if (!snapshot.exists) return null;
-      const data = snapshot.data();
-      const totalRatings = (data.totalRatings || 0) + 1;
-      const average = (((data.rating || 0) * (data.totalRatings || 0)) + _ratingScore) / totalRatings;
-      return db.collection("users").doc(APP.otherId).update({
-        rating: Math.round(average * 10) / 10,
-        totalRatings
+    if (!APP.otherId) return;
+    return db.collection('users').doc(APP.otherId).get().then(snap => {
+      if (!snap.exists) return;
+      const d = snap.data();
+      const tot = (d.totalRatings||0)+1;
+      const avg = (((d.rating||0)*(d.totalRatings||0))+_ratingScore)/tot;
+      return db.collection('users').doc(APP.otherId).update({
+        rating:Math.round(avg*10)/10, totalRatings:tot, totalJobs:(d.totalJobs||0)+1
       });
     });
   }).then(() => {
-    toast("Rating submitted! Thank you.", "success");
-    show("screen-success");
-  }).catch(error => {
-    console.error("Rating error:", error);
-    toast("Failed to submit rating", "error");
-  }).finally(() => {
-    btn.textContent = "Submit Rating →";
-    btn.disabled = false;
-  });
+    toast('Rating submitted! Thank you 🙏','success');
+    show('screen-success');
+  }).catch(e => { toast('Failed to submit rating','error'); console.error(e); })
+  .finally(() => { btn.textContent='Submit Rating →'; btn.disabled=false; });
 }
 
+
+// ══════════════════════════════════════════════════════════════
+// TECHNICIAN HOME
+// ══════════════════════════════════════════════════════════════
 function renderTechHome() {
-  show("screen-tech-home");
-  document.getElementById("tech-greeting").textContent = "Welcome, " + APP.profile.name + " 🔧";
-  document.getElementById("tech-earnings").textContent = "₹" + (APP.profile.totalEarnings || 0);
-  document.getElementById("tech-jobs-count").textContent = APP.profile.totalJobs || 0;
-  document.getElementById("tech-rating-display").textContent = (APP.profile.rating || "—") + " ⭐";
-  document.getElementById("radius-select").value = String(APP.radius);
+  show('screen-tech-home');
+  document.getElementById('tech-greeting').textContent = 'Welcome, '+APP.profile.name+' 🔧';
+  document.getElementById('tech-earnings').textContent = '₹'+(APP.profile.totalEarnings||0);
+  document.getElementById('tech-jobs-count').textContent = APP.profile.totalJobs||0;
+  document.getElementById('tech-rating-display').textContent = (APP.profile.rating||'—')+' ⭐';
   APP.isOnline = APP.profile.isOnline !== false;
   updateOnlineUI();
-  updateLocationLabels();
+  // GPS already captured by mandatory GPS gate
+  APP.techGpsReady = !!(APP.lat && APP.lng);
+  const gpsLabel = document.getElementById('tech-gps-label');
+  gpsLabel.textContent = APP.techGpsReady ? '📍 GPS active · Within '+APP.radius+' km' : '📍 GPS unavailable';
+  // Sync dropdown
+  const dd = document.getElementById('dist-dropdown');
+  if (dd) dd.value = APP.radius;
   loadTechJobs();
-}
-
-function jobWithinSelectedRadius(job) {
-  if (!APP.locationReady || !hasCoords(job.location)) return false;
-  const distance = distKm(APP.lat, APP.lng, job.location.lat, job.location.lng);
-  job._dist = distance;
-  return distance <= APP.radius;
-}
-
-function renderTechJobsList(jobs) {
-  const list = document.getElementById("tech-jobs-list");
-  if (!APP.locationReady) {
-    list.innerHTML = renderEmptyCard("📍", "Enable location", "Enable location to use FixNow.", '<button class="btn-ghost" style="max-width:240px;margin:0 auto" onclick="retryLocationAccess()">Retry location</button>');
-    return;
-  }
-  if (!jobs.length) {
-    list.innerHTML = renderEmptyCard("🔍", "No jobs nearby", `No open jobs within ${APP.radius} KM right now. Stay online and new jobs will appear automatically.`);
-    return;
-  }
-  list.innerHTML = jobs.map(job => {
-    const cat = CATS.find(c => c.id === job.category);
-    const urgencyColor = job.urgency === "urgent" ? "#C92B2B" : job.urgency === "today" ? "#F4500A" : "#2E7D4F";
-    const urgencyBg = job.urgency === "urgent" ? "#FDEAEA" : job.urgency === "today" ? "#FFF0EA" : "#E8F5EE";
-    const distance = typeof job._dist === "number" ? `📍 ${job._dist.toFixed(1)} km` : "📍 GPS required";
-    return `<div class="tech-job-card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <span style="background:${urgencyBg};color:${urgencyColor};font-size:11px;font-weight:700;padding:3px 10px;border-radius:6px">${cat?.icon || "🔧"} ${escapeHtml(cat?.label || job.category || "General")}</span>
-        <span style="font-size:12px;color:var(--muted);font-weight:600">${distance}</span>
-      </div>
-      <span style="background:${urgencyBg};color:${urgencyColor};font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;display:inline-block;margin-bottom:8px">${job.urgency === "urgent" ? "🔴 URGENT" : job.urgency === "today" ? "🟠 TODAY" : "🟢 FLEXIBLE"}</span>
-      <div style="font-weight:700;color:var(--dark);font-family:'Syne',sans-serif;margin-bottom:5px">${escapeHtml(job.title)}</div>
-      <div style="font-size:13px;color:var(--mid);line-height:1.5;margin-bottom:8px">${escapeHtml(job.description)}</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:12px">📍 ${escapeHtml(job.location?.address || "Shared via GPS")} · 💬 ${job.bidCount || 0} bids · 👤 ${escapeHtml(job.customerName || "Customer")}</div>
-      <div id="bf-${job.id}" style="background:#FFF0EA;border:1.5px solid rgba(244,80,10,0.2);border-radius:12px;padding:14px">
-        <div style="font-size:11px;font-weight:700;color:var(--or);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:10px">📤 Send Your Quote</div>
-        <div style="display:flex;gap:8px;margin-bottom:8px">
-          <input id="bp-${job.id}" type="number" placeholder="₹ Your price" style="flex:1;border:1.5px solid var(--border);border-radius:9px;padding:9px 12px;font-size:13px;font-family:'Manrope',sans-serif;outline:none;background:white">
-          <input id="bt-${job.id}" placeholder="Time (e.g. 45 min)" style="flex:1;border:1.5px solid var(--border);border-radius:9px;padding:9px 12px;font-size:13px;font-family:'Manrope',sans-serif;outline:none;background:white">
-        </div>
-        <input id="bs-${job.id}" placeholder="Spares needed (optional)" style="width:100%;border:1.5px solid var(--border);border-radius:9px;padding:9px 12px;font-size:13px;font-family:'Manrope',sans-serif;outline:none;background:white;margin-bottom:8px">
-        <textarea id="bm-${job.id}" placeholder="Note to customer..." style="width:100%;border:1.5px solid var(--border);border-radius:9px;padding:9px 12px;font-size:13px;font-family:'Manrope',sans-serif;outline:none;background:white;min-height:60px;resize:vertical;margin-bottom:10px"></textarea>
-        <button onclick="submitBid('${job.id}')" style="width:100%;background:var(--grad);color:white;border:none;border-radius:10px;padding:11px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Manrope',sans-serif">Send Bid →</button>
-      </div>
-    </div>`;
-  }).join("") + '<div style="height:80px"></div>';
 }
 
 function loadTechJobs() {
   cleanUp();
-  const list = document.getElementById("tech-jobs-list");
-  list.innerHTML = renderLoadingCard("Loading nearby jobs...");
-  APP.techJobsPrimed = false;
-  const unsub = db.collection("jobs").where("status", "==", "open").orderBy("createdAt", "desc")
-    .onSnapshot(snapshot => {
-      const allJobs = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
-      const nearbyJobs = allJobs.filter(job => jobWithinSelectedRadius(job)).sort((a, b) => a._dist - b._dist);
-      if (APP.techJobsPrimed) {
-        const newNearbyJob = snapshot.docChanges().find(change => change.type === "added" && jobWithinSelectedRadius({id: change.doc.id, ...change.doc.data()}));
-        if (newNearbyJob) showJobAlert();
+  const el = document.getElementById('tech-jobs-list');
+  el.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted)"><div class="spinner spinner-dark"></div> Finding jobs near you...</div>';
+  const unsub = db.collection('jobs').where('status','==','open')
+    .orderBy('createdAt','desc')
+    .onSnapshot(snap => {
+      let jobs = snap.docs.map(d => {
+        const j = {id:d.id,...d.data()};
+        if (APP.lat && APP.lng && j.location?.lat && j.location?.lng)
+          j._dist = distKm(APP.lat, APP.lng, j.location.lat, j.location.lng);
+        return j;
+      });
+      // Filter by radius (25km effectively covers all nearby)
+      if (APP.techGpsReady && APP.radius > 0) {
+        jobs = jobs.filter(j => !j._dist || j._dist <= APP.radius);
       }
-      APP.techJobsPrimed = true;
-      updateLocationLabels();
-      renderTechJobsList(nearbyJobs);
-    }, error => {
-      console.error("Tech jobs error:", error);
-      list.innerHTML = renderEmptyCard("⚠️", "Could not load jobs", "Please try again.", '<button class="btn-ghost" style="max-width:240px;margin:0 auto" onclick="refreshTechJobs()">Retry</button>');
+      jobs.sort((a,b) => (a._dist||999) - (b._dist||999));
+
+      // Job alert: detect NEW jobs since last snapshot
+      const currentIds = new Set(jobs.map(j => j.id));
+      if (APP.prevJobIds.size > 0) {
+        const newJobs = jobs.filter(j => !APP.prevJobIds.has(j.id));
+        if (newJobs.length > 0) showJobAlert(newJobs[0]);
+      }
+      APP.prevJobIds = currentIds;
+
+      const gpsLabel = document.getElementById('tech-gps-label');
+      if (APP.techGpsReady) {
+        gpsLabel.textContent = '📍 GPS active · Within '+APP.radius+' km · '+jobs.length+' found';
+      }
+
+      if (!jobs.length) {
+        el.innerHTML='<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-title">No jobs nearby</div><div class="empty-desc">No open jobs within '+APP.radius+' km right now.<br>Try a larger radius or stay online — new jobs appear in real time!</div><button class="retry-btn" onclick="refreshJobs()" style="margin-top:16px">🔄 Refresh</button></div>';
+        return;
+      }
+      el.innerHTML = jobs.map(j => {
+        const cat=CATS.find(c=>c.id===j.category);
+        const uc=j.urgency==='urgent'?'#C92B2B':j.urgency==='today'?'#F4500A':'#2E7D4F';
+        const ub=j.urgency==='urgent'?'#FDEAEA':j.urgency==='today'?'#FFF0EA':'#E8F5EE';
+        const dist=j._dist?'📍 '+j._dist.toFixed(1)+' km':'📍 '+(j.location?.address||'Nearby');
+        return '<div class="tech-job-card">'+
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'+
+            '<span style="background:'+ub+';color:'+uc+';font-size:11px;font-weight:700;padding:3px 10px;border-radius:6px">'+(cat?.icon||'🔧')+' '+(cat?.label||j.category)+'</span>'+
+            '<span style="font-size:12px;color:var(--muted);font-weight:600">'+dist+'</span>'+
+          '</div>'+
+          '<span style="background:'+ub+';color:'+uc+';font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;display:inline-block;margin-bottom:8px">'+(j.urgency==='urgent'?'🔴 URGENT':j.urgency==='today'?'🟠 TODAY':'🟢 FLEXIBLE')+'</span>'+
+          '<div style="font-weight:700;color:var(--dark);font-family:\'Syne\',sans-serif;margin-bottom:5px">'+j.title+'</div>'+
+          '<div style="font-size:13px;color:var(--mid);line-height:1.5;margin-bottom:8px">'+j.description+'</div>'+
+          '<div style="font-size:12px;color:var(--muted);margin-bottom:12px">📍 '+(j.location?.address||'')+' · 💬 '+(j.bidCount||0)+' bids · 👤 '+j.customerName+'</div>'+
+          '<div id="bf-'+j.id+'" style="background:#FFF0EA;border:1.5px solid rgba(244,80,10,0.2);border-radius:12px;padding:14px">'+
+            '<div style="font-size:11px;font-weight:700;color:var(--or);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:10px">📤 Send Your Quote</div>'+
+            '<div style="display:flex;gap:8px;margin-bottom:8px">'+
+              '<input id="bp-'+j.id+'" type="number" placeholder="₹ Your price" style="flex:1;border:1.5px solid var(--border);border-radius:9px;padding:9px 12px;font-size:13px;font-family:\'Manrope\',sans-serif;outline:none;background:white">'+
+              '<input id="bt-'+j.id+'" placeholder="Time (e.g. 45 min)" style="flex:1;border:1.5px solid var(--border);border-radius:9px;padding:9px 12px;font-size:13px;font-family:\'Manrope\',sans-serif;outline:none;background:white">'+
+            '</div>'+
+            '<input id="bs-'+j.id+'" placeholder="Spares needed (optional)" style="width:100%;border:1.5px solid var(--border);border-radius:9px;padding:9px 12px;font-size:13px;font-family:\'Manrope\',sans-serif;outline:none;background:white;margin-bottom:8px;box-sizing:border-box">'+
+            '<textarea id="bm-'+j.id+'" placeholder="Note to customer..." style="width:100%;border:1.5px solid var(--border);border-radius:9px;padding:9px 12px;font-size:13px;font-family:\'Manrope\',sans-serif;outline:none;background:white;min-height:60px;resize:vertical;margin-bottom:10px;box-sizing:border-box"></textarea>'+
+            '<button onclick="submitBid(\''+j.id+'\')" style="width:100%;background:var(--grad);color:white;border:none;border-radius:10px;padding:11px;font-size:14px;font-weight:700;cursor:pointer;font-family:\'Manrope\',sans-serif">Send Bid →</button>'+
+          '</div>'+
+        '</div>';
+      }).join('');
+    }, err => {
+      console.error('Tech jobs error:', err);
+      el.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Error loading jobs</div><div class="empty-desc">Something went wrong. Please try again.</div><button class="retry-btn" onclick="refreshJobs()">🔄 Retry</button></div>';
     });
   APP.unsubscribers.push(unsub);
 }
 
 function setRadius(km) {
   APP.radius = km;
-  updateLocationLabels();
-  if (APP.profile?.role === "technician") loadTechJobs();
-}
-
-function refreshTechJobs() {
-  const btn = document.getElementById("refresh-jobs-btn");
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner spinner-dark"></span>Refreshing...';
-  ensureAppLocation({forceRefresh: true, showGateOnError: true})
-    .then(() => {
-      loadTechJobs();
-      toast("Jobs refreshed", "success");
-    })
-    .catch(() => {})
-    .finally(() => {
-      btn.disabled = false;
-      btn.textContent = "🔄 Refresh Jobs";
-    });
+  const dd = document.getElementById('dist-dropdown');
+  if (dd) dd.value = km;
+  loadTechJobs();
 }
 
 function submitBid(jobId) {
-  const price = document.getElementById("bp-" + jobId).value;
-  const time = document.getElementById("bt-" + jobId).value;
-  const spares = document.getElementById("bs-" + jobId).value;
-  const message = document.getElementById("bm-" + jobId).value;
-  if (!price || Number(price) <= 0) return toast("Enter a valid price", "error");
-  db.collection("bids").where("jobId", "==", jobId).where("technicianId", "==", APP.user.uid).get()
-    .then(snapshot => {
-      if (!snapshot.empty) {
-        toast("You already bid on this job", "error");
-        return null;
-      }
-      return db.collection("jobs").doc(jobId).get();
+  const price  = document.getElementById('bp-'+jobId).value;
+  const time   = document.getElementById('bt-'+jobId).value;
+  const spares = document.getElementById('bs-'+jobId).value;
+  const msg    = document.getElementById('bm-'+jobId).value;
+  if (!price || Number(price)<=0) { toast('Enter a valid price','error'); return; }
+  db.collection('bids')
+    .where('jobId','==',jobId)
+    .where('technicianId','==',APP.user.uid)
+    .get()
+    .then(snap => {
+      if (!snap.empty) { toast('You already bid on this job','error'); return; }
+      return db.collection('jobs').doc(jobId).get();
     })
     .then(jobSnap => {
-      if (!jobSnap || !jobSnap.exists || jobSnap.data().status !== "open") {
-        toast("This job is no longer available", "error");
-        return null;
+      if (!jobSnap || !jobSnap.exists || jobSnap.data().status!=='open') {
+        toast('This job is no longer available','error'); return;
       }
       return Promise.all([
-        db.collection("bids").add({
-          jobId,
-          technicianId: APP.user.uid,
-          technicianName: APP.profile.name,
-          technicianPhone: APP.profile.phone || "",
-          technicianRating: APP.profile.rating || 0,
-          isVerified: APP.profile.isVerified || false,
-          price: Number(price),
-          estimatedTime: time || "Will confirm on site",
-          sparesRequired: spares || "",
-          message: message || "",
-          status: "pending",
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        db.collection('bids').add({
+          jobId, technicianId:APP.user.uid, technicianName:APP.profile.name,
+          technicianPhone:APP.profile.phone||'', technicianRating:APP.profile.rating||0,
+          isVerified:APP.profile.isVerified||false,
+          price:Number(price), estimatedTime:time||'Will confirm on site',
+          sparesRequired:spares||'', message:msg||'', status:'pending',
+          createdAt:firebase.firestore.FieldValue.serverTimestamp()
         }),
-        db.collection("jobs").doc(jobId).update({
-          bidCount: firebase.firestore.FieldValue.increment(1),
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        db.collection('jobs').doc(jobId).update({
+          bidCount:firebase.firestore.FieldValue.increment(1),
+          updatedAt:firebase.firestore.FieldValue.serverTimestamp()
         })
       ]);
     })
-    .then(result => {
-      if (!result || !document.getElementById("bf-" + jobId)) return;
-      toast("Bid sent! Waiting for customer.", "success");
-      document.getElementById("bf-" + jobId).innerHTML = `
-        <div style="text-align:center;padding:12px">
-          <div style="font-size:24px;margin-bottom:6px">✅</div>
-          <div style="font-weight:700;color:#2E7D4F;font-family:'Syne',sans-serif">Bid Sent!</div>
-          <div style="font-size:12px;color:var(--muted);margin-top:4px">₹${escapeHtml(price)} · ${escapeHtml(time || "TBD")} - Waiting for customer</div>
-        </div>`;
-      document.getElementById("bf-" + jobId).style.background = "#E8F5EE";
-      document.getElementById("bf-" + jobId).style.borderColor = "rgba(46,125,79,0.25)";
+    .then(() => {
+      if (!document.getElementById('bf-'+jobId)) return;
+      toast('Bid sent! Waiting for customer ✅','success');
+      document.getElementById('bf-'+jobId).innerHTML='<div style="text-align:center;padding:12px"><div style="font-size:24px;margin-bottom:6px">✅</div><div style="font-weight:700;color:#2E7D4F;font-family:\'Syne\',sans-serif">Bid Sent!</div><div style="font-size:12px;color:var(--muted);margin-top:4px">₹'+price+' · '+(time||'TBD')+' — Waiting for customer</div></div>';
+      document.getElementById('bf-'+jobId).style.background='#E8F5EE';
+      document.getElementById('bf-'+jobId).style.borderColor='rgba(46,125,79,0.25)';
     })
-    .catch(e => {
-      console.error("Submit bid error:", e);
-      toast("Could not send bid", "error");
-    });
+    .catch(e => { console.error(e); });
 }
 
 function toggleOnline() {
   APP.isOnline = !APP.isOnline;
-  db.collection("users").doc(APP.user.uid).update({isOnline: APP.isOnline}).catch(e => console.error("Online toggle error:", e));
+  db.collection('users').doc(APP.user.uid).update({isOnline:APP.isOnline});
   updateOnlineUI();
-  toast(APP.isOnline ? "You are now Online" : "You are Offline", APP.isOnline ? "success" : "info");
+  toast(APP.isOnline?'You are now Online ✅':'You are Offline',APP.isOnline?'success':'info');
 }
 
 function updateOnlineUI() {
-  const dot = document.getElementById("online-dot");
-  const text = document.getElementById("online-text");
-  const btn = document.getElementById("online-toggle-btn");
-  if (dot && text && btn) {
-    dot.style.background = APP.isOnline ? "#4CAF70" : "#A09890";
-    text.style.color = APP.isOnline ? "#4CAF70" : "#A09890";
-    text.textContent = APP.isOnline ? "Online - Tap to go Offline" : "Offline - Tap to go Online";
-    btn.style.background = APP.isOnline ? "rgba(46,125,79,0.2)" : "rgba(160,152,144,0.15)";
+  const dot  = document.getElementById('online-dot');
+  const text = document.getElementById('online-text');
+  const btn  = document.getElementById('online-toggle-btn');
+  if (dot) {
+    dot.style.background  = APP.isOnline ? '#4CAF70' : '#A09890';
+    text.style.color      = APP.isOnline ? '#4CAF70' : '#A09890';
+    text.textContent      = APP.isOnline ? 'Online — Tap to go Offline' : 'Offline — Tap to go Online';
+    btn.style.background  = APP.isOnline ? 'rgba(46,125,79,0.2)' : 'rgba(160,152,144,0.15)';
   }
-  const profileStatus = document.getElementById("pv-online-status");
-  if (profileStatus) {
-    profileStatus.textContent = APP.isOnline ? "🟢 Online" : "⚫ Offline";
-    profileStatus.style.background = APP.isOnline ? "#E8F5EE" : "var(--light)";
-    profileStatus.style.color = APP.isOnline ? "#2E7D4F" : "var(--muted)";
+  const pvStatus = document.getElementById('pv-online-status');
+  if (pvStatus) {
+    pvStatus.textContent = APP.isOnline ? '🟢 Online' : '⚫ Offline';
+    pvStatus.style.background = APP.isOnline ? '#E8F5EE' : 'var(--light)';
+    pvStatus.style.color = APP.isOnline ? '#2E7D4F' : 'var(--muted)';
   }
 }
 
+// ══════════════════════════════════════════════════════════════
+// CHAT LIST
+// ══════════════════════════════════════════════════════════════
 function openChatList() {
-  cleanUp();
-  show("screen-chat-list");
-  const container = document.getElementById("chat-list-container");
-  container.innerHTML = renderLoadingCard("Loading chats...");
-  const chatsRef = rtdb.ref("chats");
-  const onValue = snapshot => {
-    try {
-      const data = snapshot.val() || {};
-      const chats = Object.entries(data)
-        .map(([id, value]) => ({id, ...(value || {})}))
-        .filter(chat => !!chat.participantIds && chat.participantIds[APP.user.uid] === true)
-        .sort((a, b) => (b.lastMessageAt || 0) - (a.lastMessageAt || 0));
-      if (!chats.length) {
-        container.innerHTML = renderEmptyCard("💬", "No chats yet", "Chats will appear once a job is accepted.");
+  show('screen-chat-list');
+  const el = document.getElementById('chat-list-container');
+  el.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted)"><div class="spinner spinner-dark"></div> Loading chats...</div>';
+  const uid = APP.user.uid;
+  const role = APP.profile.role;
+  const field = role === 'customer' ? 'customerId' : 'technicianId';
+  // Simple query — filter + sort client-side to avoid composite index requirement
+  db.collection('jobs').where(field, '==', uid).get()
+    .then(snap => {
+      let jobs = snap.docs.map(d => ({id:d.id,...d.data()}));
+      jobs = jobs.filter(j => ['in_progress', 'completed_by_tech', 'completed'].includes(j.status));
+      jobs.sort((a, b) => {
+        const ta = a.updatedAt?.toMillis?.() || a.updatedAt?.seconds*1000 || 0;
+        const tb = b.updatedAt?.toMillis?.() || b.updatedAt?.seconds*1000 || 0;
+        return tb - ta;
+      });
+      if (!jobs.length) {
+        el.innerHTML = '<div class="empty-state"><div class="empty-icon">💬</div><div class="empty-title">No chats yet</div><div class="empty-desc">Chats will appear once a job is accepted.<br>Post a job or bid on one to get started!</div></div>';
         return;
       }
-      container.innerHTML = chats.map(chat => {
-        const otherName = APP.profile.role === "customer" ? (chat.technicianName || "Technician") : (chat.customerName || "Customer");
-        const otherId = APP.profile.role === "customer" ? (chat.technicianId || "") : (chat.customerId || "");
-        const summary = chat.jobTitle ? `${escapeHtml(chat.jobTitle)} · ${escapeHtml(chat.lastMessage || "No messages yet")}` : escapeHtml(chat.lastMessage || "No messages yet");
-        return `<div class="chat-item" onclick="openChat('${chat.id}','${otherId}','${escapeHtml(otherName).replace(/'/g, "\\'")}')">
-          <div class="chat-ava">${APP.profile.role === "customer" ? "🔧" : "👤"}</div>
-          <div style="flex:1;min-width:0">
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-              <div style="font-weight:700;color:var(--dark);font-family:'Syne',sans-serif;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(otherName)}</div>
-              <span style="font-size:10px;color:var(--muted);white-space:nowrap">${formatChatStatus(chat.jobStatus)}</span>
-            </div>
-            <div style="font-size:12px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${summary}</div>
-            <div style="font-size:11px;color:var(--muted);margin-top:4px">${chat.lastMessageAt ? formatTime(chat.lastMessageAt) : ""}</div>
-          </div>
-          <div style="color:var(--muted);font-size:16px">→</div>
-        </div>`;
-      }).join("");
-    } catch (error) {
-      console.error("Chat list parse error:", error);
-      container.innerHTML = renderEmptyCard("⚠️", "Error loading chats", "Please try again.", '<button class="btn-ghost" style="max-width:240px;margin:0 auto" onclick="openChatList()">Retry</button>');
-    }
-  };
-  const onError = error => {
-    console.error("Chat list error:", error);
-    container.innerHTML = renderEmptyCard("⚠️", "Error loading chats", "Please try again.", '<button class="btn-ghost" style="max-width:240px;margin:0 auto" onclick="openChatList()">Retry</button>');
-  };
-  chatsRef.on("value", onValue, onError);
-  APP.unsubscribers.push(() => chatsRef.off("value", onValue));
+      el.innerHTML = jobs.map(j => {
+        const otherName = role === 'customer' ? (j.technicianName||'Technician') : (j.customerName||'Customer');
+        const otherId = role === 'customer' ? j.technicianId : j.customerId;
+        const statusLabel = j.status==='in_progress'?'🟢 Active':j.status==='completed_by_tech'?'⏳ Awaiting Confirm':'✅ Done';
+        const cat = CATS.find(c=>c.id===j.category);
+        const safeName = (otherName||'').replace(/'/g,"\\'");
+        return '<div class="chat-item" onclick="openChat(\''+j.id+'\',\''+otherId+'\',\''+safeName+'\')">'+
+          '<div class="chat-ava">'+(role==='customer'?'🔧':'👤')+'</div>'+
+          '<div style="flex:1;min-width:0">'+
+            '<div style="display:flex;justify-content:space-between;align-items:center">'+
+              '<div style="font-weight:700;color:var(--dark);font-family:\'Syne\',sans-serif;font-size:15px">'+otherName+'</div>'+
+              '<span style="font-size:10px;color:var(--muted)">'+statusLabel+'</span>'+
+            '</div>'+
+            '<div style="font-size:12px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(cat?.icon||'🔧')+' '+j.title+' · ₹'+(j.agreedPrice||'TBD')+'</div>'+
+          '</div>'+
+          '<div style="color:var(--muted);font-size:16px">→</div>'+
+        '</div>';
+      }).join('');
+    })
+    .catch(e => {
+      console.error('Chat list error:', e);
+      el.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Error loading chats</div><div class="empty-desc">Something went wrong. Please check your connection and try again.</div><button class="retry-btn" onclick="openChatList()">🔄 Retry</button></div>';
+    });
 }
 
+// ══════════════════════════════════════════════════════════════
+// PROFILE
+// ══════════════════════════════════════════════════════════════
 function openProfile() {
-  cleanUp();
-  show("screen-profile-view");
-  const profile = APP.profile;
-  if (!profile) return;
-  document.getElementById("pv-avatar").textContent = (profile.name || "?")[0].toUpperCase();
-  document.getElementById("pv-name").textContent = profile.name;
-  document.getElementById("pv-phone").textContent = profile.phone || "No phone";
-  const badge = document.getElementById("pv-role-badge");
-  if (profile.role === "customer") {
-    badge.textContent = "🏠 Customer";
-    badge.style.background = "#FFF0EA";
-    badge.style.color = "var(--or)";
+  show('screen-profile-view');
+  const p = APP.profile;
+  if (!p) return;
+  document.getElementById('pv-avatar').textContent = (p.name||'?')[0].toUpperCase();
+  document.getElementById('pv-name').textContent = p.name;
+  document.getElementById('pv-phone').textContent = p.phone || 'No phone';
+  const badge = document.getElementById('pv-role-badge');
+  if (p.role === 'customer') {
+    badge.textContent = '🏠 Customer';
+    badge.style.background = '#FFF0EA'; badge.style.color = 'var(--or)';
   } else {
-    badge.textContent = "🔧 Technician";
-    badge.style.background = "#E8F5EE";
-    badge.style.color = "#2E7D4F";
+    badge.textContent = '🔧 Technician';
+    badge.style.background = '#E8F5EE'; badge.style.color = '#2E7D4F';
   }
-  const stats = document.getElementById("pv-stats");
-  if (profile.role === "customer") {
-    stats.innerHTML = `<div class="stat-card"><div class="stat-val">${profile.totalJobs || 0}</div><div class="stat-lbl">Jobs Posted</div></div><div class="stat-card"><div class="stat-val">${profile.rating || "—"}</div><div class="stat-lbl">Rating ⭐</div></div>`;
+  // Stats
+  const statsEl = document.getElementById('pv-stats');
+  if (p.role === 'customer') {
+    statsEl.innerHTML = '<div class="stat-card"><div class="stat-val">'+(p.totalJobs||0)+'</div><div class="stat-lbl">Jobs Posted</div></div>'+
+      '<div class="stat-card"><div class="stat-val">'+(p.rating||'—')+'</div><div class="stat-lbl">Rating ⭐</div></div>';
   } else {
-    stats.innerHTML = `<div class="stat-card"><div class="stat-val">${profile.totalJobs || 0}</div><div class="stat-lbl">Jobs</div></div><div class="stat-card"><div class="stat-val">₹${profile.totalEarnings || 0}</div><div class="stat-lbl">Earned</div></div><div class="stat-card"><div class="stat-val">${profile.rating || "—"}</div><div class="stat-lbl">Rating ⭐</div></div>`;
+    statsEl.innerHTML = '<div class="stat-card"><div class="stat-val">'+(p.totalJobs||0)+'</div><div class="stat-lbl">Jobs</div></div>'+
+      '<div class="stat-card"><div class="stat-val">₹'+(p.totalEarnings||0)+'</div><div class="stat-lbl">Earned</div></div>'+
+      '<div class="stat-card"><div class="stat-val">'+(p.rating||'—')+'</div><div class="stat-lbl">Rating ⭐</div></div>';
   }
-  document.getElementById("pv-edit-name").value = profile.name || "";
-  document.getElementById("pv-edit-address").value = profile.defaultAddress || "";
-  document.getElementById("pv-address-section").style.display = profile.role === "customer" ? "block" : "none";
-  const skillsSection = document.getElementById("pv-skills-section");
-  const onlineSection = document.getElementById("pv-online-section");
-  if (profile.role === "technician") {
-    skillsSection.style.display = "block";
-    onlineSection.style.display = "block";
-    const activeSkills = profile.skills || [];
-    const pendingSkills = profile.pendingSkills || [];
-    document.getElementById("pv-skills-active").innerHTML = activeSkills.map(skillId => {
-      const cat = CATS.find(item => item.id === skillId);
-      return cat ? `<span class="skill-chip selected">${cat.icon} ${cat.label}</span>` : "";
-    }).join("") || '<span style="font-size:12px;color:var(--muted)">No skills set</span>';
-    const blockedIds = [...activeSkills, ...pendingSkills];
-    document.getElementById("pv-skills-add").innerHTML = CATS.filter(cat => !blockedIds.includes(cat.id)).map(cat => `<div class="skill-chip" data-id="${cat.id}" onclick="this.classList.toggle('selected')">${cat.icon} ${cat.label}</div>`).join("") + (pendingSkills.length ? `<div style="width:100%;margin-top:6px;font-size:11px;color:#856404">⏳ Pending: ${pendingSkills.map(skillId => CATS.find(cat => cat.id === skillId)?.label).filter(Boolean).join(", ")}</div>` : "");
+  // Edit fields
+  document.getElementById('pv-edit-name').value = p.name || '';
+  document.getElementById('pv-edit-address').value = p.defaultAddress || '';
+  document.getElementById('pv-address-section').style.display = p.role === 'customer' ? 'block' : 'none';
+  // Skills section for technician
+  const skillsSection = document.getElementById('pv-skills-section');
+  const onlineSection = document.getElementById('pv-online-section');
+  if (p.role === 'technician') {
+    skillsSection.style.display = 'block';
+    onlineSection.style.display = 'block';
+    const activeSkills = p.skills || [];
+    const pendingSkills = p.pendingSkills || [];
+    document.getElementById('pv-skills-active').innerHTML =
+      activeSkills.map(sid => {
+        const c = CATS.find(x=>x.id===sid);
+        return c ? '<span class="skill-chip selected">'+c.icon+' '+c.label+'</span>' : '';
+      }).join('') || '<span style="font-size:12px;color:var(--muted)">No skills set</span>';
+    const allIds = [...activeSkills, ...pendingSkills];
+    document.getElementById('pv-skills-add').innerHTML =
+      CATS.filter(c => !allIds.includes(c.id)).map(c =>
+        '<div class="skill-chip" data-id="'+c.id+'" onclick="this.classList.toggle(\'selected\')">'+c.icon+' '+c.label+'</div>'
+      ).join('') +
+      (pendingSkills.length ? '<div style="width:100%;margin-top:6px;font-size:11px;color:#856404">⏳ Pending: '+
+        pendingSkills.map(sid => { const c=CATS.find(x=>x.id===sid); return c?c.label:''; }).filter(Boolean).join(', ')+'</div>' : '');
     updateOnlineUI();
   } else {
-    skillsSection.style.display = "none";
-    onlineSection.style.display = "none";
+    skillsSection.style.display = 'none';
+    onlineSection.style.display = 'none';
   }
 }
 
 function saveProfileChanges() {
-  const name = document.getElementById("pv-edit-name").value.trim();
-  if (!name) return toast("Name is required", "error");
-  const btn = document.getElementById("pv-save-btn");
-  btn.textContent = "Saving...";
-  btn.disabled = true;
-  const updates = {name};
-  if (APP.profile.role === "customer") updates.defaultAddress = document.getElementById("pv-edit-address").value.trim();
-  if (APP.profile.role === "technician") {
-    const newSkills = Array.from(document.querySelectorAll("#pv-skills-add .skill-chip.selected")).map(node => node.dataset.id);
-    if (newSkills.length) updates.pendingSkills = firebase.firestore.FieldValue.arrayUnion(...newSkills);
+  const name = document.getElementById('pv-edit-name').value.trim();
+  if (!name) { toast('Name is required','error'); return; }
+  const btn = document.getElementById('pv-save-btn');
+  btn.textContent = 'Saving...'; btn.disabled = true;
+  const updates = { name };
+  if (APP.profile.role === 'customer') {
+    updates.defaultAddress = document.getElementById('pv-edit-address').value.trim();
   }
-  db.collection("users").doc(APP.user.uid).update(updates)
+  if (APP.profile.role === 'technician') {
+    const newSkills = Array.from(document.querySelectorAll('#pv-skills-add .skill-chip.selected')).map(c => c.dataset.id);
+    if (newSkills.length > 0) {
+      updates.pendingSkills = firebase.firestore.FieldValue.arrayUnion(...newSkills);
+    }
+  }
+  db.collection('users').doc(APP.user.uid).update(updates)
     .then(() => {
-      APP.profile = {...APP.profile, ...updates};
-      toast("Profile updated!", "success");
+      APP.profile.name = name;
+      if (updates.defaultAddress !== undefined) APP.profile.defaultAddress = updates.defaultAddress;
+      toast('Profile updated! ✅','success');
       openProfile();
     })
-    .catch(error => {
-      console.error("Profile update error:", error);
-      toast("Error saving profile", "error");
-    })
-    .finally(() => {
-      btn.textContent = "Save Changes";
-      btn.disabled = false;
-    });
+    .catch(e => { toast('Error saving profile','error'); console.error(e); })
+    .finally(() => { btn.textContent = 'Save Changes'; btn.disabled = false; });
 }
 
+// ══════════════════════════════════════════════════════════════
+// EARNINGS DASHBOARD
+// ══════════════════════════════════════════════════════════════
 function openEarnings() {
-  cleanUp();
-  show("screen-earnings");
-  const list = document.getElementById("earn-recent-list");
-  list.innerHTML = renderLoadingCard("Loading earnings...");
-  db.collection("jobs").where("technicianId", "==", APP.user.uid).where("status", "==", "completed").orderBy("updatedAt", "desc").get()
-    .then(snapshot => {
-      const jobs = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
+  show('screen-earnings');
+  const el = document.getElementById('earn-recent-list');
+  el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)"><div class="spinner spinner-dark"></div> Loading earnings...</div>';
+  db.collection('jobs')
+    .where('technicianId', '==', APP.user.uid)
+    .where('status', 'in', ['completed', 'completed_by_tech'])
+    .orderBy('updatedAt', 'desc')
+    .get()
+    .then(snap => {
+      const jobs = snap.docs.map(d => ({id:d.id,...d.data()}));
       const now = new Date();
       const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
       const weekStart = todayStart - (now.getDay() * 86400000);
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-      let todayEarn = 0, weekEarn = 0, monthEarn = 0, totalEarn = 0;
-      jobs.forEach(job => {
-        const price = Math.max(job.agreedPrice || 0, job.actualAmountPaid || 0);
+      let todayEarn=0, weekEarn=0, monthEarn=0, totalEarn=0;
+      jobs.forEach(j => {
+        const price = Math.max(j.agreedPrice||0, j.actualAmountPaid||0);
         totalEarn += price;
-        const ts = job.updatedAt?.toMillis?.() || 0;
+        const ts = j.updatedAt?.toMillis?.() || 0;
         if (ts >= todayStart) todayEarn += price;
         if (ts >= weekStart) weekEarn += price;
         if (ts >= monthStart) monthEarn += price;
       });
-      document.getElementById("earn-today").textContent = "₹" + todayEarn;
-      document.getElementById("earn-week").textContent = "₹" + weekEarn;
-      document.getElementById("earn-month").textContent = "₹" + monthEarn;
-      document.getElementById("earn-total").textContent = "₹" + totalEarn;
-      document.getElementById("earn-jobs-count").textContent = jobs.length;
-      document.getElementById("earn-avg").textContent = "₹" + (jobs.length ? Math.round(totalEarn / jobs.length) : 0);
-      document.getElementById("earn-rating").textContent = APP.profile.rating || "—";
-      if (!jobs.length) {
-        list.innerHTML = renderEmptyCard("📊", "No completed jobs yet", "Complete jobs to see your earnings here.");
+      document.getElementById('earn-today').textContent = '₹'+todayEarn;
+      document.getElementById('earn-week').textContent = '₹'+weekEarn;
+      document.getElementById('earn-month').textContent = '₹'+monthEarn;
+      document.getElementById('earn-total').textContent = '₹'+totalEarn;
+      document.getElementById('earn-jobs-count').textContent = jobs.length;
+      document.getElementById('earn-avg').textContent = '₹'+(jobs.length ? Math.round(totalEarn/jobs.length) : 0);
+      document.getElementById('earn-rating').textContent = (APP.profile.rating||'—');
+      const recent = jobs.slice(0, 10);
+      if (!recent.length) {
+        el.innerHTML = '<div class="empty-state" style="padding:24px"><div class="empty-icon">📊</div><div class="empty-title">No completed jobs yet</div><div class="empty-desc">Complete jobs to see your earnings here.</div></div>';
         return;
       }
-      list.innerHTML = jobs.slice(0, 10).map(job => {
-        const cat = CATS.find(c => c.id === job.category);
-        const price = Math.max(job.agreedPrice || 0, job.actualAmountPaid || 0);
-        const date = job.updatedAt?.toDate?.() ? job.updatedAt.toDate().toLocaleDateString("en-IN", {day: "numeric", month: "short"}) : "";
-        return `<div style="background:white;border-radius:12px;padding:14px;margin-bottom:8px;border:1.5px solid var(--border);display:flex;align-items:center;gap:12px"><div style="width:40px;height:40px;border-radius:10px;background:#E8F5EE;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">${cat?.icon || "🔧"}</div><div style="flex:1"><div style="font-weight:700;color:var(--dark);font-size:14px">${escapeHtml(job.title)}</div><div style="font-size:11px;color:var(--muted);margin-top:2px">${escapeHtml(job.customerName || "")} · ${date}</div></div><div style="font-family:'Syne',sans-serif;font-weight:800;color:var(--green);font-size:16px">₹${price}</div></div>`;
-      }).join("");
+      el.innerHTML = recent.map(j => {
+        const cat = CATS.find(c=>c.id===j.category);
+        const price = Math.max(j.agreedPrice||0, j.actualAmountPaid||0);
+        const date = j.updatedAt?.toDate?.() ? j.updatedAt.toDate().toLocaleDateString('en-IN',{day:'numeric',month:'short'}) : '';
+        return '<div style="background:white;border-radius:12px;padding:14px;margin-bottom:8px;border:1.5px solid var(--border);display:flex;align-items:center;gap:12px">'+
+          '<div style="width:40px;height:40px;border-radius:10px;background:#E8F5EE;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">'+(cat?.icon||'🔧')+'</div>'+
+          '<div style="flex:1"><div style="font-weight:700;color:var(--dark);font-size:14px">'+j.title+'</div><div style="font-size:11px;color:var(--muted);margin-top:2px">'+j.customerName+' · '+date+'</div></div>'+
+          '<div style="font-family:\'Syne\',sans-serif;font-weight:800;color:var(--green);font-size:16px">₹'+price+'</div>'+
+        '</div>';
+      }).join('');
     })
-    .catch(error => {
-      console.error("Earnings error:", error);
-      list.innerHTML = renderEmptyCard("⚠️", "Error loading earnings", "Please try again later.");
+    .catch(e => {
+      console.error('Earnings error:', e);
+      el.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-desc">Error loading earnings data.</div></div>';
     });
 }
+
+// ════════════════════════════════════════════════════════════════
+// GPS GATE (Mandatory Location)
+// ════════════════════════════════════════════════════════════════
+function captureGPS() {
+  const gate = document.getElementById('gps-gate');
+  const msg = document.getElementById('gps-gate-msg');
+  const spinner = document.getElementById('gps-gate-spinner');
+  const retryBtn = document.getElementById('gps-gate-retry');
+  gate.style.display = 'flex';
+  spinner.style.display = 'block';
+  retryBtn.style.display = 'none';
+  msg.textContent = 'FixNow needs your location to connect you with nearby services. Please allow location access.';
+
+  if (!navigator.geolocation) {
+    spinner.style.display = 'none';
+    msg.textContent = 'Your browser does not support GPS. Please use a modern browser to use FixNow.';
+    retryBtn.style.display = 'inline-block';
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      APP.lat = pos.coords.latitude;
+      APP.lng = pos.coords.longitude;
+      APP.techGpsReady = true;
+      if (APP.user) {
+        db.collection('users').doc(APP.user.uid).update({
+          location: { lat: APP.lat, lng: APP.lng }
+        }).catch(e => console.error('GPS store error:', e));
+      }
+      gate.style.display = 'none';
+      if (APP._pendingGPSAction) {
+        APP._pendingGPSAction();
+        APP._pendingGPSAction = null;
+      }
+    },
+    err => {
+      console.error('GPS error:', err);
+      spinner.style.display = 'none';
+      msg.textContent = 'Enable location to use FixNow. Please allow location access in your browser settings and try again.';
+      retryBtn.style.display = 'inline-block';
+    },
+    { enableHighAccuracy: true, timeout: 15000 }
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+// REFRESH JOBS
+// ════════════════════════════════════════════════════════════════
+function refreshJobs() {
+  const btn = document.getElementById('refresh-jobs-btn');
+  if (btn) { btn.classList.add('spinning'); btn.disabled = true; }
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        APP.lat = pos.coords.latitude;
+        APP.lng = pos.coords.longitude;
+        APP.techGpsReady = true;
+        db.collection('users').doc(APP.user.uid).update({
+          location: { lat: APP.lat, lng: APP.lng }
+        }).catch(e => console.error('GPS update error:', e));
+        APP.prevJobIds = new Set();
+        loadTechJobs();
+        if (btn) { btn.classList.remove('spinning'); btn.disabled = false; }
+        toast('Jobs refreshed! ✅', 'success');
+      },
+      () => {
+        APP.prevJobIds = new Set();
+        loadTechJobs();
+        if (btn) { btn.classList.remove('spinning'); btn.disabled = false; }
+        toast('Jobs refreshed (GPS unchanged)', 'info');
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  } else {
+    APP.prevJobIds = new Set();
+    loadTechJobs();
+    if (btn) { btn.classList.remove('spinning'); btn.disabled = false; }
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+// JOB ALERT NOTIFICATION
+// ════════════════════════════════════════════════════════════════
+function showJobAlert(job) {
+  const alertEl = document.getElementById('job-alert-banner');
+  if (!alertEl) return;
+  const cat = CATS.find(c => c.id === job.category);
+  alertEl.innerHTML = '<div style="display:flex;align-items:center;gap:12px">'+
+    '<div style="font-size:24px">🔔</div>'+
+    '<div style="flex:1">'+
+      '<div style="font-weight:700;font-size:14px">New job nearby!</div>'+
+      '<div style="font-size:12px;opacity:0.85">'+(cat?.icon||'🔧')+' '+job.title+(job._dist ? ' · '+job._dist.toFixed(1)+' km away' : '')+'</div>'+
+    '</div>'+
+    '<div style="font-size:18px">→</div>'+
+  '</div>';
+  alertEl.style.display = 'block';
+  if (navigator.vibrate) navigator.vibrate(200);
+  playAlertSound();
+  clearTimeout(APP.jobAlertTimer);
+  APP.jobAlertTimer = setTimeout(() => { alertEl.style.display = 'none'; }, 6000);
+}
+
+function playAlertSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.setValueAtTime(800, ctx.currentTime);
+    osc.frequency.setValueAtTime(1000, ctx.currentTime + 0.1);
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.3);
+  } catch(e) { /* Audio not supported */ }
+}
+
+// Clean up all listeners when page closes
+window.addEventListener('beforeunload', () => {
+  cleanUp();
+});
+
 </script>
 </body>
 </html>
