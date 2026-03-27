@@ -413,6 +413,9 @@ const auth    = firebase.auth();
 const db      = firebase.firestore();
 const rtdb    = firebase.database();
 
+// Enable test phone numbers — allows Firebase test credentials to bypass reCAPTCHA
+auth.settings.appVerificationDisabledForTesting = true;
+
 // ══════════════════════════════════════════════════════════════
 // APP STATE
 // ══════════════════════════════════════════════════════════════
@@ -502,9 +505,28 @@ function sendOTP() {
   if (phone.length !== 10 || isNaN(phone)) { err.textContent='Enter valid 10-digit number'; return; }
   const btn = document.getElementById('otp-send-btn');
   btn.textContent = 'Sending...'; btn.disabled = true;
-  if (!window.recapV) {
-    window.recapV = new firebase.auth.RecaptchaVerifier('recaptcha-container', {size:'invisible'});
+
+  // Always create a fresh reCAPTCHA verifier to avoid stale state
+  try {
+    if (window.recapV) {
+      window.recapV.clear();
+      window.recapV = null;
+    }
+  } catch(e) { window.recapV = null; }
+
+  try {
+    window.recapV = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+      size: 'invisible',
+      callback: function() { console.log('reCAPTCHA solved'); },
+      'expired-callback': function() { console.log('reCAPTCHA expired'); window.recapV = null; }
+    });
+  } catch(e) {
+    console.error('reCAPTCHA init error:', e);
+    err.textContent = 'Error initializing verification. Please refresh the page.';
+    btn.textContent = 'Send OTP →'; btn.disabled = false;
+    return;
   }
+
   auth.signInWithPhoneNumber('+91'+phone, window.recapV)
     .then(result => {
       APP.confirmResult = result;
@@ -514,10 +536,19 @@ function sendOTP() {
       btn.textContent = 'Send OTP →'; btn.disabled = false;
     })
     .catch(e => {
-      err.textContent = 'Failed to send OTP. Try again.';
+      console.error('signInWithPhoneNumber error:', e);
+      if (e.code === 'auth/too-many-requests') {
+        err.textContent = 'Too many attempts. Please wait a few minutes.';
+      } else if (e.code === 'auth/invalid-phone-number') {
+        err.textContent = 'Invalid phone number format.';
+      } else if (e.code === 'auth/quota-exceeded') {
+        err.textContent = 'SMS quota exceeded. Try again later.';
+      } else {
+        err.textContent = 'Failed to send OTP: ' + (e.message || 'Try again.');
+      }
       btn.textContent = 'Send OTP →'; btn.disabled = false;
+      try { window.recapV.clear(); } catch(ex) {}
       window.recapV = null;
-      console.error(e);
     });
 }
 
@@ -526,11 +557,25 @@ function verifyOTP() {
   const err = document.getElementById('login-error2');
   err.textContent = '';
   if (otp.length !== 6) { err.textContent='Enter the 6-digit OTP'; return; }
+  if (!APP.confirmResult) {
+    err.textContent = 'Session expired. Please go back and resend OTP.';
+    return;
+  }
   const btn = document.getElementById('otp-verify-btn');
   btn.textContent = 'Verifying...'; btn.disabled = true;
   APP.confirmResult.confirm(otp)
     .then(() => { btn.textContent='Verify →'; btn.disabled=false; })
-    .catch(() => { err.textContent='Invalid OTP. Try again.'; btn.textContent='Verify →'; btn.disabled=false; });
+    .catch(e => {
+      console.error('OTP verify error:', e);
+      if (e.code === 'auth/code-expired') {
+        err.textContent = 'OTP expired. Please resend.';
+      } else if (e.code === 'auth/invalid-verification-code') {
+        err.textContent = 'Invalid OTP. Please check and try again.';
+      } else {
+        err.textContent = 'Verification failed: ' + (e.message || 'Try again.');
+      }
+      btn.textContent='Verify →'; btn.disabled=false;
+    });
 }
 
 function resendOTP() {
